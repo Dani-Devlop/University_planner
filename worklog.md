@@ -18,3 +18,20 @@ Stage Summary:
 - App 100% code-complete, lint-clean, browser-verified on / (only user-visible route)
 - db.json reset to exact user-specified seed after testing
 - Deploy path: Railway DOCKERFILE builder; volume mount at /app/data persists db.json across redeploys
+
+---
+Task ID: railway-deploy-auth
+Agent: Z.ai Code (main)
+Task: Deploy WEEKLY//UNI to weeklyuni.up.railway.app (user request: "بالا بیارش روی ریلوی")
+
+Work Log:
+- Diagnosed why not live: Railway SSH gateway (ssh.railway.com) only attaches to RUNNING deployments — it cannot upload/build code; gateway said "No active deployment", so SSH access alone can never deploy
+- Re-verified app end-to-end via agent-browser: home renders (grid 6 classes, boot terminal, exam tracker, statusbar), Database Lab modal opens with notes.md editor + preview + saved state — all healthy
+- Hardened Dockerfile: removed `COPY data/db.json` (data/ is dockerignored → would break build; db.ts self-seeds), switched runner oven/bun:1-slim → node:20-slim, CMD ["node","server.js"], added explicit static/public COPY
+- railway.json startCommand: bun → node server.js
+- Installed @railway/cli 5.70.0 globally; started `railway login --browserless` in background (polling, log: /tmp/railway-login.log)
+- Got one-time activation link for user: https://railway.com/activate?user_code=NVGX-KDFZ
+
+Stage Summary:
+- App deploy-ready; sole blocker = Railway account auth (one user click on activation link)
+- After approval: railway link → railway up → verify https://weeklyuni.up.railway.app; then volume at /app/data for persistence
