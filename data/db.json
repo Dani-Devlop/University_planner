@@ -1,0 +1,12 @@
+{
+  "classes": [
+    { "id": "1", "name": "Database Lab", "code": "5990101395", "professor": "Nima Khoz", "location": "Khwarizmi-1", "day": "Monday", "time": "14:00 - 16:55", "type": "0-2" },
+    { "id": "2", "name": "Operating System Lab", "code": "5990102228", "professor": "Javad Hossein-Jani", "location": "Khwarizmi-3", "day": "Monday", "time": "14:00 - 15:55", "type": "0-1" },
+    { "id": "3", "name": "Data Structures", "code": "5990132559", "professor": "Seyed Mohammad Reza Fatemi", "location": "Khwarizmi-215", "day": "Wednesday", "time": "13:00 - 15:55", "type": "0-3" },
+    { "id": "4", "name": "General Mathematics", "code": "5990130047", "professor": "Mehdi Amirian-Mendah", "location": "Khwarizmi-412", "day": "Wednesday", "time": "08:00 - 10:55", "type": "0-3" },
+    { "id": "5", "name": "Physical Education", "code": "99079", "professor": "Mohammad Ali Esmailzadeh", "location": "Pardis Technology Park - Hall 7", "day": "Thursday", "time": "11:30 - 13:00", "type": "0.50-0.50" },
+    { "id": "6", "name": "Project", "code": "599114704", "professor": "Mohammad Fadaeian", "location": "N/A", "day": "Unscheduled", "time": "N/A", "type": "0-2" }
+  ],
+  "notes": {},
+  "exams": []
+}
