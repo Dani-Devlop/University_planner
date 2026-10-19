@@ -98,3 +98,21 @@ Work Log:
 Stage Summary:
 - LIVE: reminders (classes & exams 90/60min, presentations 4d/2d + minute-level) with 3 distinct sounds (class chime / exam alarm / presentation arpeggio), Jalali date input+display everywhere, fully RTL weekly schedule
 - Reminder needs page/PWA open to fire (web push w/o server not feasible); sounds need one user gesture to unlock AudioContext (handled)
+
+---
+Task ID: professors-grid-plus-sounds
+Agent: Z.ai Code (main)
+Task: Show professor names in the weekly schedule grid + make notification sounds clearly distinct/premium ("اسم استادا هم وارد بکن به هفتگی" + "صدای نوتیفیکشن رو متفاوت‌تر بزار")
+
+Work Log:
+- Weekly grid professor display added in schedule-grid.tsx: desktop ClassBlock now shows GraduationCap + استاد line (prefix "استاد:" in wide blocks, bare name + title tooltip in narrow overlap columns like Monday's 3 parallel labs); EN subtitle only when height>110 && cols===1; location threshold raised to >95 so professor fits; mobile accordion cards show "استاد: X" row with cap icon; SELF-PACED card got matching cap icon
+- Verified live data already contains correct professors (نیما خوز، جواد حسین‌خانی، سیدحمیدرضا فاطمی، مهدی امیرمیاندرق، محمدعلی اسماعیل‌زاده، محمد فدائیان) — no data change needed; DB-lab time kept 14:00–16:55 per official portal screenshot (user's typed ۱۵:۰۰ treated as typo)
+- Normalized nameFa "ساختمان‌داده‌ها" with ZWNJ in db.ts seed + data/db.json (live PUT pending deploy)
+- Rewrote src/lib/sounds.ts as premium synth: shared master bus (feedback-delay reverb + compressor), bell voices with inharmonic partials + stereo pan, lowpassed square siren with rising slide, harp voices; three unmistakable signatures: CLASS=E6→C6 two-stroke campus bell, EXAM=3× rising wee-woo bursts D5→G5, PRESENTATION=pentatonic harp run C5..E6 + C6/G6/C7 shimmer chord; per-kind vibration patterns added via navigator.vibrate
+- Bell popover rules text updated (زنگ «دینگ‌دونگ» / آژیر سه‌ضرب / آرپژ صحنه) + test label clarified
+- Verified locally: eslint clean, tsc src clean, agent-browser — desktop grid shows استاد in all blocks incl. narrow Monday columns, mobile accordion shows استاد on every card (دوشنبه×3، چهارشنبه، پنج‌شنبه، پروژه), all 3 sound test buttons clicked with zero console errors, RTL order + today highlight intact
+
+Stage Summary:
+- Professor names now visible directly in the weekly schedule (desktop + mobile), no modal needed
+- Notification sounds are now acoustically unmistakable per event type + vibration patterns
+- BLOCKED on deploy: sandbox reset wiped Railway CLI + auth token; CLI reinstalled, browserless login code provided to user (VXDW-BHVT) — deploy (railway link + up + live verify + nameFa PUT) executes right after user activates

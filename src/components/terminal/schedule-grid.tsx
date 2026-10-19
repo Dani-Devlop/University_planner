@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Clock, Puzzle, CalendarHeart } from "lucide-react";
+import { MapPin, Clock, Puzzle, CalendarHeart, GraduationCap } from "lucide-react";
 import { useUni } from "@/lib/store";
 import type { UniClass } from "@/lib/types";
 import { tehranDayName, tehranMinutes } from "@/lib/tehran";
@@ -124,16 +124,28 @@ function ClassBlock({
       <div dir="rtl" className="truncate text-right font-fa text-[11px] font-bold leading-tight text-foreground sm:text-xs">
         {item.nameFa || item.name}
       </div>
-      {item.nameFa && (
+      {item.nameFa && height > 110 && item.cols === 1 && (
         <div dir="ltr" className="truncate text-right font-mono text-[8px] leading-snug text-muted-foreground/60 sm:text-[9px]">
           {item.name}
+        </div>
+      )}
+      {height > 70 && item.professor && (
+        <div
+          dir="rtl"
+          className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-foreground/75 sm:text-[10px]"
+          title={`استاد: ${item.professor}`}
+        >
+          <GraduationCap className="h-2.5 w-2.5 shrink-0" aria-hidden style={{ color }} />
+          <span className="truncate font-fa">
+            {item.cols > 1 ? item.professor : `استاد: ${item.professor}`}
+          </span>
         </div>
       )}
       <div dir="rtl" className="mt-1 flex items-center gap-1 truncate text-[9px] tabular-nums text-muted-foreground sm:text-[10px]">
         <Clock className="h-2.5 w-2.5 shrink-0" aria-hidden style={{ color }} />
         <span dir="ltr">{item.time}</span>
       </div>
-      {height > 82 && (
+      {height > 95 && (
         <div dir="rtl" className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-muted-foreground/85 sm:text-[10px]">
           <MapPin className="h-2.5 w-2.5 shrink-0" aria-hidden style={{ color }} />
           <span className="truncate font-fa">{item.location}</span>
@@ -375,6 +387,12 @@ export function ScheduleGrid() {
                             <Clock className="h-3 w-3 shrink-0" aria-hidden style={{ color }} />
                             <span dir="ltr" className="tabular-nums">{cls.time}</span>
                           </div>
+                          {cls.professor && (
+                            <div dir="rtl" className="flex items-center gap-1.5">
+                              <GraduationCap className="h-3 w-3 shrink-0" aria-hidden style={{ color }} />
+                              <span className="font-fa text-foreground/80">استاد: {cls.professor}</span>
+                            </div>
+                          )}
                           <div dir="rtl" className="flex items-center gap-1.5">
                             <MapPin className="h-3 w-3 shrink-0" aria-hidden style={{ color }} />
                             <span className="font-fa">{cls.location}</span>
@@ -431,7 +449,10 @@ export function ScheduleGrid() {
                   </div>
                 )}
                 <div dir="rtl" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-fa text-[11px] text-muted-foreground">
-                  <span>استاد: {c.professor}</span>
+                  <span className="flex items-center gap-1">
+                    <GraduationCap className="h-3 w-3 shrink-0" aria-hidden style={{ color: classColor(c) }} />
+                    استاد: {c.professor}
+                  </span>
                   <span className="font-mono" dir="ltr">#{c.code}</span>
                 </div>
               </motion.button>

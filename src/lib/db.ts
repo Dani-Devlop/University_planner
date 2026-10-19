@@ -14,7 +14,7 @@ const SEED: ScheduleDB = {
   classes: [
     { id: "1", name: "Database Lab", nameFa: "آزمایشگاه پایگاه داده‌ها", code: "5990101495", professor: "نیما خوز", location: "خوارزمی-۱", day: "Monday", time: "14:00 - 16:55", type: "0-2", color: "#00ff41" },
     { id: "2", name: "Operating System Lab", nameFa: "آزمایشگاه سیستم‌عامل", code: "5990102228", professor: "جواد حسین‌خانی", location: "خوارزمی-۳", day: "Monday", time: "14:00 - 15:55", type: "0-1", color: "#22d3ee" },
-    { id: "3", name: "Data Structures", nameFa: "ساختمان داده‌ها", code: "5990132559", professor: "سیدحمیدرضا فاطمی", location: "خوارزمی-۲۱۵", day: "Monday", time: "13:00 - 15:55", type: "0-3", color: "#c084fc" },
+    { id: "3", name: "Data Structures", nameFa: "ساختمان‌داده‌ها", code: "5990132559", professor: "سیدحمیدرضا فاطمی", location: "خوارزمی-۲۱۵", day: "Monday", time: "13:00 - 15:55", type: "0-3", color: "#c084fc" },
     { id: "4", name: "General Mathematics", nameFa: "ریاضی عمومی", code: "5990130047", professor: "مهدی امیرمیاندرق", location: "خوارزمی-۴۱۲", day: "Wednesday", time: "08:00 - 10:55", type: "0-3", color: "#fbbf24" },
     { id: "5", name: "Physical Education", nameFa: "تربیت بدنی", code: "99079", professor: "محمدعلی اسماعیل‌زاده", location: "پارک فناوری پردیس-سالن ۱", day: "Thursday", time: "11:30 - 13:00", type: "0.50-0.50", color: "#fb7185" },
     { id: "6", name: "Project", nameFa: "پروژه", code: "5990114704", professor: "محمد فدائیان", location: "N/A", day: "Unscheduled", time: "N/A", type: "0-2", color: "#34d399" },

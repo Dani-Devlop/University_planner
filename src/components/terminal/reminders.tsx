@@ -310,20 +310,20 @@ export function BellButton() {
         <ul className="mb-3 space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
           <li className="flex items-center gap-1.5">
             <AlarmClock className="h-3 w-3 shrink-0 text-terminal/70" aria-hidden />
-            کلاس‌ها: <b className="text-foreground/85">۹۰ و ۶۰ دقیقه</b> قبل + صدای زنگ
+            کلاس‌ها: <b className="text-foreground/85">۹۰ و ۶۰ دقیقه</b> قبل + زنگ «دینگ‌دونگ»
           </li>
           <li className="flex items-center gap-1.5">
             <BookOpenCheck className="h-3 w-3 shrink-0 text-cyber/80" aria-hidden />
-            میان‌ترم / پایان‌ترم: <b className="text-foreground/85">۹۰ و ۶۰ دقیقه</b> قبل + صدای هشدار
+            میان‌ترم / پایان‌ترم: <b className="text-foreground/85">۹۰ و ۶۰ دقیقه</b> قبل + آژیر سه‌ضرب
           </li>
           <li className="flex items-center gap-1.5">
             <Presentation className="h-3 w-3 shrink-0 text-amber/90" aria-hidden />
-            ارائه‌ها: <b className="text-foreground/85">۴ و ۲ روز</b> قبل + دقیقه‌ای‌ها
+            ارائه‌ها: <b className="text-foreground/85">۴ و ۲ روز</b> قبل + دقیقه‌ای‌ها + آرپژ صحنه
           </li>
         </ul>
 
         {/* sound test */}
-        <p className="mb-1.5 text-[11px] text-muted-foreground/70">تست صداها:</p>
+        <p className="mb-1.5 text-[11px] text-muted-foreground/70">تست صداها — هر رویداد زنگ کاملاً متفاوتی دارد:</p>
         <div className="mb-3 grid grid-cols-3 gap-1.5">
           {SOUND_TESTS.map((s) => (
             <Button
