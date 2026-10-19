@@ -1,5 +1,5 @@
-/* WEEKLY//UNI service worker — PWA offline shell */
-const CACHE = "weeklyuni-v1";
+/* WEEKLY//UNI service worker — PWA offline shell + notification routing */
+const CACHE = "weeklyuni-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -17,12 +17,28 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of list) {
+        await client.focus();
+        return;
+      }
+      await self.clients.openWindow("/");
+    })()
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return; // never cache API — JSON db must stay fresh
+  // dev server: pass everything straight to network (HMR chunks must stay fresh)
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return;
 
   // cache-first for immutable next static assets + icons
   if (url.pathname.startsWith("/_next/static") || url.pathname.startsWith("/icons/")) {
