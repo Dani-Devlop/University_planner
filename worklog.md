@@ -116,3 +116,18 @@ Stage Summary:
 - Professor names now visible directly in the weekly schedule (desktop + mobile), no modal needed
 - Notification sounds are now acoustically unmistakable per event type + vibration patterns
 - BLOCKED on deploy: sandbox reset wiped Railway CLI + auth token; CLI reinstalled, browserless login code provided to user (VXDW-BHVT) — deploy (railway link + up + live verify + nameFa PUT) executes right after user activates
+
+---
+Task ID: session-wrap-handoff
+Agent: Z.ai Code (main)
+Task: Wrap up session; prepare complete 0→100 handoff prompt for remaining deployment
+
+Work Log:
+- Re-checked auth after 5 browserless attempts (HNBQ-NRCM, PXBF-RGND, VXDW-BHVT, ZDMT-HGXS, XVBM-RWFK): no ~/.railway/config.json ever landed; login processes died via sandbox resets / tool-call teardown despite nohup; latest reset wiped the CLI binary again (~/.railway/bin/railway gone)
+- Confirmed local state FINAL: nameFa «ساختمان‌داده‌ها» (ZWNJ) in src/lib/db.ts seed + data/db.json; professor rows in schedule-grid.tsx (desktop incl. narrow Monday overlap columns + mobile accordion); premium 3-signature sounds in src/lib/sounds.ts (+ vibration patterns); lint clean, tsc src clean, agent-browser local E2E zero errors
+- Confirmed live state: https://weeklyuni.up.railway.app/api/health ok (6 classes, 0 exams); live class id "3" nameFa still 'ساختمان داده‌ها' (regular space) → ZWNJ PUT /api/classes/3 pending post-deploy
+- Delivered self-contained 0→100 handoff prompt to user (deploy chain + ZWNJ PUT + live verification checklist + worklog update) including Railway IDs, auth gotchas (setsid trick / project-token path), and do-not-touch warnings (startCommand node server.js, volume persistence)
+
+Stage Summary:
+- ALL local development complete & browser-verified; ONLY the deployment chain remains
+- Next session needs zero prior context: install CLI → auth (project token preferred, browserless+setsid fallback) → railway link (project 401a7516-2762-4453-b48b-de723e7c9c35 / service 25d84cb9-7d8c-45b3-987c-5f683d9d21de / env 22d3d0b5-0442-4334-8afe-93749a7ba322) → railway up -d → PUT /api/classes/3 {"nameFa":"ساختمان‌داده‌ها"} → agent-browser live verify (استاد rows desktop+mobile, 3 sound tests, RTL, 0 console errors) → append worklog entry
