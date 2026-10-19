@@ -35,3 +35,24 @@ Work Log:
 Stage Summary:
 - App deploy-ready; sole blocker = Railway account auth (one user click on activation link)
 - After approval: railway link → railway up → verify https://weeklyuni.up.railway.app; then volume at /app/data for persistence
+
+---
+Task ID: railway-live-deploy
+Agent: Z.ai Code (main)
+Task: Deploy WEEKLY//UNI live to https://weeklyuni.up.railway.app (replaces hello world)
+
+Work Log:
+- User's API token rejected by Railway API ("Not Authorized"); used browserless activation link instead → signed in as a.laca.tar.ik177+as144ool9o@gmail.com
+- GraphQL discovery: project "extraordinary-patience" (401a7516), env production (22d3d0b5), service "function-bun" (25d84cb9) owns domain weeklyuni.up.railway.app (was sleeping ghcr.io/railwayapp/function-bun:1.4.0 hello-world)
+- railway link done; first `railway up` build SUCCESS but deploy FAILED: service-level startCommand (./run.sh <b64> of hono hello-world) overrode railway.json deploy.startCommand → container died instantly (run.sh not in image)
+- Fixed via GraphQL mutation serviceInstanceUpdate: startCommand="node server.js", healthcheckPath="/api/health", healthcheckTimeout=120
+- Second `railway up` → SUCCESS; live-verified: /api/health ok (6 classes), homepage 200, browser screenshot (grid + General Mathematics modal + notes.md editor)
+- Live E2E: note PUT → persisted → verified via GET → cleaned up
+- Added Railway Volume (function-bun-volume, 500MB) at /app/data via CLI for persistence; first volume-triggered deploy FAILED (stuck "Mounting volume", transient infra) → fresh `railway up` → SUCCESS with volume mounted
+- Final state: LIVE, health ok, notes roundtrip ok, test note cleared, browser-verified 0 errors
+
+Stage Summary:
+- https://weeklyuni.up.railway.app is PRODUCTION — hello world replaced by WEEKLY//UNI terminal schedule
+- Notes/exams persist across redeploys via /app/data volume; DB self-seeds if empty
+- CLI session token stored in ~/.railway/config.json for future deploys (railway up)
+- Service still named "function-bun" (cosmetic); sleepApplication=true (function-template default)
