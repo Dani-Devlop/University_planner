@@ -15,9 +15,11 @@ import {
   Flag,
 } from "lucide-react";
 import { toast } from "sonner";
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useUni, emptyDraft, type ExamDraft } from "@/lib/store";
 import type { Exam, ExamKind, UniClass } from "@/lib/types";
+import { formatJalaliEventDate, toFaDigits } from "@/lib/jalali";
+import { JalaliDatePicker } from "@/components/terminal/jalali-date";
 import { classColor } from "@/components/terminal/schedule-grid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,11 +78,11 @@ const KIND_META: Record<
 
 function countdown(dateISO: string): { text: string; fa: string; urgent: boolean; past: boolean } {
   const d = differenceInCalendarDays(parseISO(dateISO), new Date());
-  if (d < 0) return { text: `${-d}d ago`, fa: `${-d} روز پیش`, urgent: false, past: true };
+  if (d < 0) return { text: `${-d}d ago`, fa: `${toFaDigits(-d)} روز پیش`, urgent: false, past: true };
   if (d === 0) return { text: "TODAY", fa: "امروز!", urgent: true, past: false };
   if (d === 1) return { text: "1d left", fa: "فردا", urgent: true, past: false };
-  if (d <= 3) return { text: `${d}d left`, fa: `${d} روز مانده`, urgent: true, past: false };
-  return { text: `${d}d left`, fa: `${d} روز مانده`, urgent: false, past: false };
+  if (d <= 3) return { text: `${d}d left`, fa: `${toFaDigits(d)} روز مانده`, urgent: true, past: false };
+  return { text: `${d}d left`, fa: `${toFaDigits(d)} روز مانده`, urgent: false, past: false };
 }
 
 export function ExamTracker() {
@@ -258,12 +260,16 @@ function ExamCard({
               </span>
             )}
           </div>
-          <h4 className="mt-2 truncate text-sm font-bold text-foreground">{exam.title}</h4>
+          <h4 dir="rtl" className="mt-2 truncate text-right font-fa text-sm font-bold text-foreground">{exam.title}</h4>
           <div className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-1.5 font-mono tabular-nums">
-              <CalendarClock className="h-3 w-3" style={{ color: meta.color }} aria-hidden />
-              {format(parseISO(exam.date), "EEE dd MMM yyyy")}
-              {exam.time && <span style={{ color: meta.color }}>· {exam.time}</span>}
+            <div dir="rtl" className="flex items-center gap-1.5 font-fa">
+              <CalendarClock className="h-3 w-3 shrink-0" style={{ color: meta.color }} aria-hidden />
+              <span className="text-foreground/85">{formatJalaliEventDate(exam.date)}</span>
+              {exam.time && (
+                <span className="font-mono tabular-nums" dir="ltr" style={{ color: meta.color }}>
+                  · {toFaDigits(exam.time)}
+                </span>
+              )}
             </div>
             {exam.location && (
               <div dir="rtl" className="flex items-center gap-1.5 font-fa">
@@ -395,13 +401,11 @@ export function ExamDialog() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ex-date" dir="rtl" className="font-fa text-xs text-muted-foreground">تاریخ *</Label>
-              <Input
-                id="ex-date"
-                type="date"
+              <Label dir="rtl" className="font-fa text-xs text-muted-foreground">تاریخ شمسی *</Label>
+              <JalaliDatePicker
                 value={draft.date}
-                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-                className="rounded-xl border-white/[0.09] bg-black/40 font-mono text-xs focus-visible:ring-terminal/40"
+                onChange={(iso) => setDraft({ ...draft, date: iso })}
+                invalid={!/^\d{4}-\d{2}-\d{2}$/.test(draft.date)}
               />
             </div>
           </div>
@@ -438,8 +442,8 @@ export function ExamDialog() {
               <SelectContent className="border-white/[0.1] bg-popover">
                 <SelectItem value="none" dir="rtl" className="font-fa">— بدون درس —</SelectItem>
                 {classes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span dir="ltr" className="text-xs">{c.name}</span>
+                  <SelectItem key={c.id} value={c.id} dir="rtl">
+                    <span className="font-fa text-xs">{c.nameFa || c.name}</span>
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -105,38 +105,38 @@ function ClassBlock({
           top,
           height,
           width: `calc(${width}% - 6px)`,
-          left: `calc(${item.col * width}% + 3px)`,
+          right: `calc(${item.col * width}% + 3px)`,
           "--c": color,
-          background: `linear-gradient(150deg, ${color}26, ${color}0d 55%, transparent)`,
+          background: `linear-gradient(-150deg, ${color}26, ${color}0d 55%, transparent)`,
           borderColor: `${color}45`,
-          boxShadow: `inset 3px 0 0 ${color}${isNow ? ", 0 0 24px " + color + "55" : ""}`,
+          boxShadow: `inset -3px 0 0 ${color}${isNow ? ", 0 0 24px " + color + "55" : ""}`,
         } as React.CSSProperties
       }
-      className="group absolute cursor-pointer overflow-hidden rounded-lg border p-2 text-left backdrop-blur-sm transition-[box-shadow,border-color] duration-200 hover:z-10 hover:border-[var(--c)] hover:shadow-[0_10px_32px_var(--c)]/40"
+      className="group absolute cursor-pointer overflow-hidden rounded-lg border p-2 text-right backdrop-blur-sm transition-[box-shadow,border-color] duration-200 hover:z-10 hover:border-[var(--c)] hover:shadow-[0_10px_32px_var(--c)]/40"
     >
       {isNow && (
         <span
-          className="absolute right-1.5 top-1.5 h-1.5 w-1.5 animate-pulse rounded-full"
+          className="absolute left-1.5 top-1.5 h-1.5 w-1.5 animate-pulse rounded-full"
           style={{ background: color }}
           aria-hidden
         />
       )}
-      <div className="truncate text-[11px] font-bold leading-tight text-foreground sm:text-xs">
-        {item.name}
+      <div dir="rtl" className="truncate text-right font-fa text-[11px] font-bold leading-tight text-foreground sm:text-xs">
+        {item.nameFa || item.name}
       </div>
       {item.nameFa && (
-        <div dir="rtl" className="truncate font-fa text-[9px] leading-snug text-muted-foreground sm:text-[10px]">
-          {item.nameFa}
+        <div dir="ltr" className="truncate text-right font-mono text-[8px] leading-snug text-muted-foreground/60 sm:text-[9px]">
+          {item.name}
         </div>
       )}
-      <div className="mt-1 flex items-center gap-1 truncate text-[9px] tabular-nums text-muted-foreground sm:text-[10px]">
+      <div dir="rtl" className="mt-1 flex items-center gap-1 truncate text-[9px] tabular-nums text-muted-foreground sm:text-[10px]">
         <Clock className="h-2.5 w-2.5 shrink-0" aria-hidden style={{ color }} />
-        {item.time}
+        <span dir="ltr">{item.time}</span>
       </div>
       {height > 82 && (
-        <div className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-muted-foreground/85 sm:text-[10px]">
+        <div dir="rtl" className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-muted-foreground/85 sm:text-[10px]">
           <MapPin className="h-2.5 w-2.5 shrink-0" aria-hidden style={{ color }} />
-          <span dir="rtl" className="truncate font-fa">{item.location}</span>
+          <span className="truncate font-fa">{item.location}</span>
         </div>
       )}
     </motion.button>
@@ -155,7 +155,7 @@ function HourGrid({ showLabels = false }: { showLabels?: boolean }) {
           style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
         >
           {showLabels && (
-            <span className="absolute right-2 -top-2">
+            <span className="absolute -top-2 left-2">
               {String(h).padStart(2, "0")}:00
             </span>
           )}
@@ -173,8 +173,8 @@ function NowLine({ minutes }: { minutes: number }) {
       style={{ top: (minutes - DAY_START) * PX_PER_MIN }}
       aria-hidden
     >
-      <div className="relative h-[2px] w-full bg-gradient-to-r from-red-500 via-red-400/70 to-transparent">
-        <span className="absolute -left-1 -top-[3px] h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" />
+      <div className="relative h-[2px] w-full bg-gradient-to-l from-red-500 via-red-400/70 to-transparent">
+        <span className="absolute -right-1 -top-[3px] h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" />
       </div>
     </div>
   );
@@ -221,10 +221,10 @@ export function ScheduleGrid() {
   const todayIndex = today ? WEEK_DAYS.indexOf(today as (typeof WEEK_DAYS)[number]) : -1;
 
   return (
-    <div>
-      {/* ── desktop timeline (Sat → Thu) ── */}
+    <div dir="rtl">
+      {/* ── desktop timeline (Sat → Thu, right-to-left) ── */}
       <div className="hidden xl:block">
-        <div className="ml-14 grid grid-cols-6 gap-2.5 pb-2">
+        <div className="mr-14 grid grid-cols-6 gap-2.5 pb-2">
           {WEEK_DAYS.map((day, i) => {
             const isToday = i === todayIndex;
             return (
@@ -237,14 +237,19 @@ export function ScheduleGrid() {
                 }`}
               >
                 <span
-                  className={`font-mono text-[11px] font-bold uppercase tracking-widest ${
-                    isToday ? "text-terminal" : "text-muted-foreground"
+                  dir="rtl"
+                  className={`font-fa text-xs font-bold ${
+                    isToday ? "text-terminal" : "text-foreground/85"
+                  }`}
+                >
+                  {dayFa(day)}
+                </span>
+                <span
+                  className={`font-mono text-[10px] font-bold uppercase tracking-widest ${
+                    isToday ? "text-terminal/80" : "text-muted-foreground"
                   }`}
                 >
                   {day.slice(0, 3)}
-                </span>
-                <span dir="rtl" className={`font-fa text-xs ${isToday ? "text-terminal/90" : "text-muted-foreground/70"}`}>
-                  {dayFa(day)}
                 </span>
                 {(byDay.get(day)?.length ?? 0) > 0 && (
                   <span className="rounded-full bg-white/[0.07] px-1.5 font-mono text-[9px] tabular-nums text-muted-foreground">
@@ -342,35 +347,37 @@ export function ScheduleGrid() {
                             borderColor: `${color}40`,
                           } as React.CSSProperties
                         }
-                        className="w-full rounded-xl border p-3.5 text-left"
+                        className="w-full rounded-xl border p-3.5 text-right"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <span className="h-7 w-1 rounded-full" style={{ background: color }} aria-hidden />
                             <span>
-                              <span className="block text-sm font-bold text-foreground">{cls.name}</span>
+                              <span dir="rtl" className="block text-right font-fa text-sm font-bold text-foreground">
+                                {cls.nameFa || cls.name}
+                              </span>
                               {cls.nameFa && (
-                                <span dir="rtl" className="block font-fa text-[11px] text-muted-foreground">
-                                  {cls.nameFa}
+                                <span dir="ltr" className="block text-right font-mono text-[10px] text-muted-foreground/60">
+                                  {cls.name}
                                 </span>
                               )}
                             </span>
                           </span>
                           <Badge
                             variant="outline"
-                            className="rounded-full border-white/10 font-mono text-[10px] text-muted-foreground"
+                            className="rounded-full border-white/10 font-mono text-[10px] tabular-nums text-muted-foreground"
                           >
                             {cls.type}u
                           </Badge>
                         </div>
                         <div className="mt-2 space-y-1 pr-3 text-[11px] text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
+                          <div dir="rtl" className="flex items-center gap-1.5">
                             <Clock className="h-3 w-3 shrink-0" aria-hidden style={{ color }} />
-                            <span className="tabular-nums">{cls.time}</span>
+                            <span dir="ltr" className="tabular-nums">{cls.time}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div dir="rtl" className="flex items-center gap-1.5">
                             <MapPin className="h-3 w-3 shrink-0" aria-hidden style={{ color }} />
-                            <span dir="rtl" className="font-fa">{cls.location}</span>
+                            <span className="font-fa">{cls.location}</span>
                           </div>
                         </div>
                       </motion.button>
@@ -413,12 +420,14 @@ export function ScheduleGrid() {
                     borderColor: `${classColor(c)}38`,
                   } as React.CSSProperties
                 }
-                className="rounded-xl border p-3.5 text-left transition-shadow hover:shadow-[0_10px_32px_var(--c)]/40"
+                className="rounded-xl border p-3.5 text-right transition-shadow hover:shadow-[0_10px_32px_var(--c)]/40"
               >
-                <div className="text-sm font-bold text-foreground">{c.name}</div>
+                <div dir="rtl" className="text-right font-fa text-sm font-bold text-foreground">
+                  {c.nameFa || c.name}
+                </div>
                 {c.nameFa && (
-                  <div dir="rtl" className="mt-0.5 font-fa text-[11px] text-muted-foreground">
-                    {c.nameFa}
+                  <div dir="ltr" className="mt-0.5 text-right font-mono text-[10px] text-muted-foreground/60">
+                    {c.name}
                   </div>
                 )}
                 <div dir="rtl" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-fa text-[11px] text-muted-foreground">

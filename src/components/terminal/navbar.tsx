@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Terminal, Command } from "lucide-react";
 import { useUni } from "@/lib/store";
 import { tehranClock } from "@/lib/tehran";
+import { BellButton } from "@/components/terminal/reminders";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -78,6 +79,7 @@ export function Navbar() {
             {now ?? "--:--:--"}
             <span className="text-[9px] font-bold tracking-widest text-terminal/70">TEH</span>
           </span>
+          <BellButton />
           <Button
             variant="outline"
             size="sm"

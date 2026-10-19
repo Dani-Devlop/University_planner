@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { UniClass, Exam, NotesMap, ExamKind } from "./types";
+import { tehranDateISO } from "./tehran";
 
 export interface ExamDraft {
   title: string;
@@ -42,7 +43,7 @@ const emptyDraft: ExamDraft = {
   title: "",
   kind: "midterm",
   classId: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: tehranDateISO(), // Tehran "today" — Jalali picker shows the Shamsi equivalent
   time: "",
   location: "",
   note: "",

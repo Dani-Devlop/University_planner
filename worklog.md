@@ -75,3 +75,26 @@ Work Log:
 Stage Summary:
 - https://weeklyuni.up.railway.app = corrected schedule + rebuilt "Midnight Campus" UI (bilingual EN/FA, per-course colors, today+now indicators)
 - Week starts Saturday (شنبه) per Iranian academic week; Monday shows 3 parallel classes via overlap columns
+
+---
+Task ID: reminders-jalali-rtl
+Agent: Z.ai Code (main)
+Task: Smart reminders (1–1.5h before classes/exams, 4d+2d before presentations) + distinct sounds + Jalali date input/display + RTL weekly schedule
+
+Work Log:
+- Found engine libs already built in lost context (reminders.ts, sounds.ts, jalali.ts, jalali-date.tsx, reminders.tsx) but NOT mounted anywhere — wired them in
+- page.tsx: mounted <ReminderEngine /> (20s tick, boot catch-up, visibility/focus re-check, SW showNotification + WebAudio sound + sonner toast, dedupe via localStorage wu.reminders.fired, 8d TTL)
+- navbar.tsx: added <BellButton /> — popover with on/off switch, browser-notification permission button, rules list, 3 sound test buttons, next-4-upcoming preview
+- ExamDialog: replaced Gregorian <input type=date> with <JalaliDatePicker> (روز/ماه/سال selects, Persian digits, live weekday+Gregorian footer); made picker fully controlled (removed setState-in-effect lint error)
+- ExamCard + CommandPalette: Jalali dates replace Gregorian (formatJalaliEventDate/Short + Persian digit times); countdown Persian digits
+- store.ts: emptyDraft date = tehranDateISO() (was UTC-shifted toISOString slice)
+- reminders.ts: exam reminder keys now include event date (editing an event re-arms its reminders)
+- schedule-grid.tsx full RTL: root dir=rtl — desktop grid شنبه rightmost→پنج‌شنبه leftmost, Persian day names first, hour axis right side w/ mirrored labels, ClassBlocks positioned via right:/inset -3px accent bar, Persian name primary + EN mono secondary, time strings dir=ltr (bidi-safe), mirrored now-line; mobile accordion + unscheduled cards same treatment
+- Fixed TS: NotificationOptions renotify via intersection type
+- Verified: lint clean, tsc src clean
+- E2E (localhost): injected presentation @now+2d-30m + midterm @now+58m → boot catch-up fired BOTH (localStorage keys e:…:2880 + e:…:60 same tick); organic class reminder c:3:2026-10-19:90 fired 11:30:07 Tehran (90min before Monday 13:00 Data Structures); Jalali picker ۲۷ مهر→آبان footer live-converts to چهارشنبه ۱۸ نوامبر; desktop+mobile screenshots RTL confirmed; test exams deleted after, exams:[] clean
+- Deployed: railway up → 4625ca40 SUCCESS; live /api/health ok (6 classes, 0 exams), RTL + bell verified on https://weeklyuni.up.railway.app, 0 console errors
+
+Stage Summary:
+- LIVE: reminders (classes & exams 90/60min, presentations 4d/2d + minute-level) with 3 distinct sounds (class chime / exam alarm / presentation arpeggio), Jalali date input+display everywhere, fully RTL weekly schedule
+- Reminder needs page/PWA open to fire (web push w/o server not feasible); sounds need one user gesture to unlock AudioContext (handled)

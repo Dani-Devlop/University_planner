@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useUni } from "@/lib/store";
 import { dayFa, classColor } from "@/components/terminal/schedule-grid";
+import { formatJalaliShort } from "@/lib/jalali";
 import {
   CommandDialog,
   CommandEmpty,
@@ -114,7 +115,9 @@ export function CommandPalette() {
             >
               <StickyNote className="h-4 w-4 text-amber/80" aria-hidden />
               <span dir="rtl" className="font-fa text-xs">{e.title}</span>
-              <span className="ml-auto font-mono text-[10px] text-muted-foreground">{e.date}</span>
+              <span dir="rtl" className="ml-auto font-fa text-[10px] text-muted-foreground">
+                {formatJalaliShort(e.date)}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>

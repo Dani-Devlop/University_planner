@@ -13,6 +13,7 @@ import { ExamTracker, ExamDialog } from "@/components/terminal/exam-tracker";
 import { CommandPalette } from "@/components/terminal/command-palette";
 import { StatusBar } from "@/components/terminal/status-bar";
 import { PaletteShortcut, SWRegister } from "@/components/terminal/system";
+import { ReminderEngine } from "@/components/terminal/reminders";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const DAY_FA_SHORT: Record<string, string> = {
@@ -281,6 +282,7 @@ export default function Home() {
       </main>
 
       <StatusBar />
+      <ReminderEngine />
       <ClassModal />
       <ExamDialog />
       <CommandPalette />

@@ -114,7 +114,8 @@ async function showSystemNotification(r: ReminderInstance): Promise<void> {
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg) {
-      await reg.showNotification(r.title, {
+      // renotify is valid in browsers but missing from TS lib types
+      const options: NotificationOptions & { renotify?: boolean } = {
         body: r.body,
         tag: r.key,
         renotify: true,
@@ -123,7 +124,8 @@ async function showSystemNotification(r: ReminderInstance): Promise<void> {
         dir: "rtl",
         lang: "fa",
         requireInteraction: r.offsetMin >= 1440,
-      });
+      };
+      await reg.showNotification(r.title, options);
       return;
     }
     new Notification(r.title, { body: r.body, icon, tag: r.key, dir: "rtl", lang: "fa" });

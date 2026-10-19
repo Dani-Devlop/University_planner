@@ -144,7 +144,7 @@ export function allReminders(
     for (const off of offsets) {
       const dayLevel = off >= 1440;
       out.push({
-        key: `e:${e.id}:${off}`,
+        key: `e:${e.id}:${timing.dateISO}:${off}`, // date in key → editing an event re-arms its reminders
         at: startEpoch - off * 60_000,
         kind,
         offsetMin: off,

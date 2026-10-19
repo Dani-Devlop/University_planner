@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { CalendarDays } from "lucide-react";
 import {
   JALALI_MONTHS_FA,
@@ -29,23 +29,15 @@ interface Props {
 
 /**
  * Shamsi (Jalali) date picker — three selects, right-to-left: روز / ماه / سال.
- * Stores the equivalent Gregorian ISO so the backend stays calendar-neutral.
+ * Fully controlled: derives Jalali parts from the stored Gregorian ISO value.
  */
 export function JalaliDatePicker({ value, onChange, invalid = false }: Props) {
   const parsed = useMemo(() => isoToJalali(value), [value]);
   const today = useMemo(() => todayJalali(), []);
 
-  const [jy, setJy] = useState<number>(parsed?.jy ?? today.jy);
-  const [jm, setJm] = useState<number>(parsed?.jm ?? today.jm);
-  const [jd, setJd] = useState<number>(parsed?.jd ?? today.jd);
-
-  // external value changes (dialog reopened / draft reset)
-  useEffect(() => {
-    if (!parsed) return;
-    setJy(parsed.jy);
-    setJm(parsed.jm);
-    setJd(parsed.jd);
-  }, [parsed]);
+  const jy = parsed?.jy ?? today.jy;
+  const jm = parsed?.jm ?? today.jm;
+  const jd = parsed?.jd ?? today.jd;
 
   const monthLen = jalaaliMonthLength(jy, jm);
   const day = Math.min(jd, monthLen);
@@ -78,11 +70,7 @@ export function JalaliDatePicker({ value, onChange, invalid = false }: Props) {
         {/* روز */}
         <Select
           value={String(day)}
-          onValueChange={(v) => {
-            const d = Number(v);
-            setJd(d);
-            commit(jy, jm, d);
-          }}
+          onValueChange={(v) => commit(jy, jm, Number(v))}
         >
           <SelectTrigger aria-label="روز" className={`${triggerCls} w-[4.5rem] ${invalid ? "border-red-500/60" : ""}`}>
             <SelectValue />
@@ -99,11 +87,7 @@ export function JalaliDatePicker({ value, onChange, invalid = false }: Props) {
         {/* ماه */}
         <Select
           value={String(jm)}
-          onValueChange={(v) => {
-            const m = Number(v);
-            setJm(m);
-            commit(jy, m, jd);
-          }}
+          onValueChange={(v) => commit(jy, Number(v), jd)}
         >
           <SelectTrigger aria-label="ماه" className={`${triggerCls} flex-1 ${invalid ? "border-red-500/60" : ""}`}>
             <SelectValue />
@@ -120,11 +104,7 @@ export function JalaliDatePicker({ value, onChange, invalid = false }: Props) {
         {/* سال */}
         <Select
           value={String(jy)}
-          onValueChange={(v) => {
-            const y = Number(v);
-            setJy(y);
-            commit(y, jm, jd);
-          }}
+          onValueChange={(v) => commit(Number(v), jm, jd)}
         >
           <SelectTrigger aria-label="سال" className={`${triggerCls} w-[5.5rem] ${invalid ? "border-red-500/60" : ""}`}>
             <SelectValue />
