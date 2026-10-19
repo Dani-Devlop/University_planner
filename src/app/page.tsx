@@ -17,14 +17,17 @@ import { tehranDayName } from "@/lib/tehran";
 import { daysUntilISO } from "@/lib/jalali";
 
 function StatCard({
-  color, icon, label, value,
-}: { color: string; icon: React.ReactNode; label: string; value: string | number }) {
+  tone, icon, label, value,
+}: { tone: "terminal" | "amber" | "cyber" | "final"; icon: React.ReactNode; label: string; value: string | number }) {
   return (
     <div className="glass-card rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <span
           className="flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ background: `${color}1f`, color }}
+          style={{
+            background: `color-mix(in srgb, var(--${tone}) 12%, transparent)`,
+            color: `var(--${tone})`,
+          }}
           aria-hidden="true"
         >
           {icon}
@@ -88,25 +91,25 @@ export default function Home() {
         {/* Overview stats */}
         <section aria-label="Overview" className="mb-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            color="#00ff41"
+            tone="terminal"
             icon={<Layers className="h-4 w-4" aria-hidden="true" />}
             label="واحد این ترم"
             value={loaded ? totalUnits : "—"}
           />
           <StatCard
-            color="#fbbf24"
+            tone="amber"
             icon={<Sun className="h-4 w-4" aria-hidden="true" />}
             label="کلاس‌های امروز"
             value={loaded ? todayCount : "—"}
           />
           <StatCard
-            color="#22d3ee"
+            tone="cyber"
             icon={<CalendarRange className="h-4 w-4" aria-hidden="true" />}
             label="جلسه در هفته"
             value={loaded ? sessionsPerWeek : "—"}
           />
           <StatCard
-            color="#fb7185"
+            tone="final"
             icon={<GraduationCap className="h-4 w-4" aria-hidden="true" />}
             label="امتحان / ارائه پیش‌رو"
             value={loaded ? upcoming : "—"}
@@ -115,19 +118,23 @@ export default function Home() {
 
         {/* Schedule */}
         <section id="schedule" aria-label="Weekly schedule" className="scroll-mt-20">
-          <div className="mb-5 flex items-center gap-3">
+          <div dir="rtl" className="mb-5 flex items-center gap-3">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-xl border"
-              style={{ background: "#00ff4114", color: "#00ff41", borderColor: "#00ff4130" }}
+              style={{
+                background: "color-mix(in srgb, var(--terminal) 8%, transparent)",
+                color: "var(--terminal)",
+                borderColor: "color-mix(in srgb, var(--terminal) 19%, transparent)",
+              }}
               aria-hidden="true"
             >
               <CalendarRange className="h-4 w-4" aria-hidden="true" />
             </span>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-mono text-base font-bold tracking-tight text-foreground">
                 WEEKLY SCHEDULE
               </h2>
-              <p dir="rtl" className="font-fa text-xs text-muted-foreground">
+              <p className="font-fa text-xs text-muted-foreground">
                 شنبه تا پنج‌شنبه — روی هر کلاس بزنید تا جزئیات و یادداشت‌ها باز شود
               </p>
             </div>
@@ -137,19 +144,23 @@ export default function Home() {
 
         {/* Exams */}
         <section id="exams" aria-label="Exam tracker" className="mt-12 scroll-mt-20">
-          <div className="mb-5 flex items-center gap-3">
+          <div dir="rtl" className="mb-5 flex items-center gap-3">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-xl border"
-              style={{ background: "#fb718514", color: "#fb7185", borderColor: "#fb718530" }}
+              style={{
+                background: "color-mix(in srgb, var(--final) 8%, transparent)",
+                color: "var(--final)",
+                borderColor: "color-mix(in srgb, var(--final) 19%, transparent)",
+              }}
               aria-hidden="true"
             >
               <GraduationCap className="h-4 w-4" aria-hidden="true" />
             </span>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-mono text-base font-bold tracking-tight text-foreground">
                 EXAMS &amp; PRESENTATIONS
               </h2>
-              <p dir="rtl" className="font-fa text-xs text-muted-foreground">
+              <p className="font-fa text-xs text-muted-foreground">
                 میان‌ترم، پایان‌ترم و ارائه‌ها — با شمارش معکوس
               </p>
             </div>

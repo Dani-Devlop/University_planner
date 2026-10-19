@@ -3,11 +3,14 @@
 // WEEKLY//UNI — weekly schedule grid (desktop 6-col RTL grid + overlap sub-columns + mobile accordion)
 
 import * as React from "react"
-import { CircleDashed, GraduationCap, Users } from "lucide-react"
+import { ChevronLeft, CircleDashed, GraduationCap, Users } from "lucide-react"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useUni } from "@/lib/store"
 import { parseRange, tehranDayName, tehranMinutes, tehranParts } from "@/lib/tehran"
 import { JALALI_MONTHS, toPersianDigits, isoToJalaliParts } from "@/lib/jalali"
+import { jalaliHoliday } from "@/lib/holidays"
+import { accentFor } from "@/lib/colors"
 import type { UniClass } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -106,11 +109,30 @@ function professorShort(professor: string): string {
   return parts[parts.length - 1] ?? professor
 }
 
+interface WeekDay {
+  day: string
+  iso: string
+  jalaliLabel: string
+  holiday: string | null
+}
+
+/** Thursday — استاد فدائیان present 08:00→19:00 (project hours, no fixed time slot) */
+const PRESENCE = {
+  day: "Thursday" as const,
+  professor: "محمد فدائیان",
+  from: "08:00",
+  to: "19:00",
+  label: "استاد فدائیان — حضور دارد",
+  hint: "هماهنگی پروژه — ساعت ثابت ندارد",
+}
+
 /* ---------------- single class block (desktop) ---------------- */
 
 function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
   const openClass = useUni((s) => s.openClass)
+  const { resolvedTheme } = useTheme()
   const { c } = item
+  const accent = accentFor(c.color, resolvedTheme)
   return (
     <button
       type="button"
@@ -125,7 +147,7 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
     >
       <span
         className="truncate font-fa text-[11px] font-bold leading-tight"
-        style={{ color: c.color }}
+        style={{ color: accent }}
       >
         {c.nameFa}
       </span>
@@ -133,7 +155,7 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="flex min-w-0 items-center gap-1 font-fa text-[10px] leading-tight text-foreground/75">
-            <GraduationCap className="h-3 w-3 shrink-0" style={{ color: c.color }} aria-hidden="true" />
+            <GraduationCap className="h-3 w-3 shrink-0" style={{ color: accent }} aria-hidden="true" />
             <span className="truncate">
               {narrow ? professorShort(c.professor) : `استاد: ${c.professor}`}
             </span>
@@ -153,12 +175,87 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
   )
 }
 
+/* ---------------- mobile class card (accordion) ---------------- */
+
+function MobileClassCard({ c }: { c: UniClass }) {
+  const openClass = useUni((s) => s.openClass)
+  const accent = accentFor(c.color, useTheme().resolvedTheme)
+  return (
+    <button
+      type="button"
+      onClick={() => openClass(c.id)}
+      className="w-full rounded-xl border p-3 text-start transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      style={{
+        borderInlineStart: `3px solid ${c.color}`,
+        background: `${c.color}0f`,
+        borderColor: `${c.color}40`,
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate font-fa text-xs font-bold" style={{ color: accent }}>
+          {c.nameFa}
+        </span>
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: c.color }} aria-hidden="true" />
+      </div>
+      <p className="mt-1 flex min-w-0 items-center gap-1 font-fa text-[10px] text-foreground/70">
+        <GraduationCap className="h-3 w-3 shrink-0" style={{ color: accent }} aria-hidden="true" />
+        <span className="truncate">استاد: {c.professor}</span>
+      </p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span dir="ltr" className="font-mono text-[10px] tabular-nums text-muted-foreground">
+          {c.time}
+        </span>
+        <span className="truncate font-fa text-[10px] text-muted-foreground">
+          {c.location}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+/* ---------------- unscheduled class card (big, e.g. پروژه) ---------------- */
+
+function UnscheduledCard({ c }: { c: UniClass }) {
+  const openClass = useUni((s) => s.openClass)
+  const accent = accentFor(c.color, useTheme().resolvedTheme)
+  return (
+    <button
+      type="button"
+      onClick={() => openClass(c.id)}
+      title={c.nameFa}
+      className="glass-card flex min-h-36 w-full cursor-pointer flex-col justify-between rounded-2xl p-5 text-start transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      style={{ borderInlineStart: `4px solid ${c.color}` }}
+    >
+      <div className="flex w-full items-start justify-between gap-2">
+        <span className="truncate font-fa text-lg font-black leading-tight" style={{ color: accent }}>
+          {c.nameFa}
+        </span>
+        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} aria-hidden="true" />
+      </div>
+      <div className="mt-3 flex min-w-0 items-center gap-1.5 font-fa text-sm font-bold text-foreground">
+        <GraduationCap className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
+        <span className="truncate">استاد: {c.professor}</span>
+      </div>
+      <div className="mt-2 flex w-full items-center justify-between gap-2">
+        <span className="truncate font-mono text-[10px] text-muted-foreground/70">
+          {c.name} · {c.code}
+        </span>
+        <span className="flex shrink-0 items-center gap-0.5 font-fa text-[10px] text-muted-foreground/70 transition-colors group-hover:text-foreground">
+          جزئیات و یادداشت
+          <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+        </span>
+      </div>
+    </button>
+  )
+}
+
 /* ---------------- one day column (desktop) ---------------- */
 
 function DayColumn({
   day,
   iso,
   jalaliLabel,
+  holiday,
   isToday,
   nowMin,
   classes,
@@ -166,6 +263,7 @@ function DayColumn({
   day: string
   iso: string
   jalaliLabel: string
+  holiday: string | null
   isToday: boolean
   nowMin: number | null
   classes: UniClass[]
@@ -181,16 +279,19 @@ function DayColumn({
     <div
       className={cn(
         "relative flex flex-col overflow-hidden rounded-xl border bg-white/[0.02]",
-        isToday ? "border-terminal/25" : "border-white/[0.06]"
+        isToday ? "border-terminal/25" : "border-white/[0.06]",
+        holiday && !isToday && "border-red-500/15"
       )}
       data-day={day}
       data-iso={iso}
+      title={holiday ? `${jalaliLabel} (تعطیل) — ${holiday}` : undefined}
     >
       {/* header */}
       <div
         className={cn(
           "flex items-center justify-between gap-1 border-b border-white/[0.06] px-2 py-2",
-          isToday && "bg-terminal/10"
+          isToday && "bg-terminal/10",
+          holiday && !isToday && "bg-red-500/[0.06]"
         )}
       >
         <span className="flex items-center gap-1.5">
@@ -199,7 +300,13 @@ function DayColumn({
             {DAY_NAMES_FA[day] ?? day}
           </span>
         </span>
-        <span className="font-fa text-[9px] text-muted-foreground">{jalaliLabel}</span>
+        {holiday ? (
+          <span className="font-fa text-[9px] font-bold text-red-500 dark:text-red-400">
+            {jalaliLabel} (تعطیل)
+          </span>
+        ) : (
+          <span className="font-fa text-[9px] text-muted-foreground">{jalaliLabel}</span>
+        )}
       </div>
 
       {/* body */}
@@ -225,6 +332,32 @@ function DayColumn({
             <span className="absolute -top-2.5 start-1 flex items-center gap-1 rounded bg-red-500/15 px-1 py-0.5 font-fa text-[9px] font-bold leading-none text-red-400">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden="true" />
               الان
+            </span>
+          </div>
+        )}
+
+        {/* Thursday presence — استاد فدائیان 08:00→19:00 (under regular class blocks) */}
+        {day === PRESENCE.day && (
+          <div
+            className="pointer-events-none absolute inset-x-1 bottom-1 z-0 flex flex-col gap-0.5 rounded-lg border border-dashed p-1.5"
+            style={{
+              top: topOf(DAY_START),
+              borderColor: "color-mix(in srgb, var(--terminal) 40%, transparent)",
+              background: "color-mix(in srgb, var(--terminal) 5%, transparent)",
+            }}
+          >
+            <span
+              className="flex items-center gap-1 font-fa text-[10px] font-bold leading-tight"
+              style={{ color: "var(--terminal)" }}
+            >
+              <GraduationCap className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {PRESENCE.label}
+            </span>
+            <span dir="ltr" className="font-mono text-[9px] tabular-nums leading-tight text-foreground/55">
+              {PRESENCE.from} - {PRESENCE.to}
+            </span>
+            <span className="font-fa text-[9px] leading-tight text-muted-foreground">
+              {PRESENCE.hint}
             </span>
           </div>
         )}
@@ -280,7 +413,6 @@ function DayColumn({
 export default function ScheduleGrid() {
   const classes = useUni((s) => s.classes)
   const loaded = useUni((s) => s.loaded)
-  const openClass = useUni((s) => s.openClass)
 
   // current Tehran minute for the red "now" line (client-only, no SSR mismatch)
   const [nowMin, setNowMin] = React.useState<number | null>(null)
@@ -292,7 +424,7 @@ export default function ScheduleGrid() {
   }, [])
 
   // mounted-once snapshot of the current week (component only renders dates after `loaded`)
-  const [week] = React.useState(() => {
+  const [week] = React.useState<WeekDay[]>(() => {
     const p = tehranParts()
     const base = Date.UTC(p.y, p.mo - 1, p.d)
     return WEEK_DAYS.map((day, i) => {
@@ -300,7 +432,13 @@ export default function ScheduleGrid() {
       const pad = (n: number) => String(n).padStart(2, "0")
       const iso = `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`
       const [jy, jm, jd] = isoToJalaliParts(iso)
-      return { day, iso, jalaliLabel: `${toPersianDigits(jd)} ${JALALI_MONTHS[jm - 1]}` }
+      const hol = jalaliHoliday(jy, jm, jd)
+      return {
+        day,
+        iso,
+        jalaliLabel: `${toPersianDigits(jd)} ${JALALI_MONTHS[jm - 1]}`,
+        holiday: hol?.name ?? null,
+      }
     })
   })
 
@@ -331,12 +469,13 @@ export default function ScheduleGrid() {
     <>
       {/* ---------- desktop grid (شنبه rightmost in RTL) ---------- */}
       <div dir="rtl" className="hidden xl:grid xl:grid-cols-6 xl:gap-2.5">
-        {week.map(({ day, iso, jalaliLabel }) => (
+        {week.map(({ day, iso, jalaliLabel, holiday }) => (
           <DayColumn
             key={day}
             day={day}
             iso={iso}
             jalaliLabel={jalaliLabel}
+            holiday={holiday}
             isToday={day === todayDay}
             nowMin={nowMin}
             classes={classes}
@@ -352,8 +491,9 @@ export default function ScheduleGrid() {
         dir="rtl"
         className="xl:hidden"
       >
-        {week.map(({ day, iso, jalaliLabel }) => {
+        {week.map(({ day, iso, jalaliLabel, holiday }) => {
           const timed = toTimed(classes.filter((c) => c.day === day))
+          const isPresenceDay = day === PRESENCE.day
           return (
             <AccordionItem
               key={day}
@@ -372,64 +512,60 @@ export default function ScheduleGrid() {
                   )}
                 </span>
                 <span className="flex items-center gap-2">
+                  {holiday && (
+                    <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 font-fa text-[9px] font-bold text-red-500 dark:text-red-400">
+                      تعطیل
+                    </span>
+                  )}
                   <span className="rounded-full bg-white/[0.08] px-1.5 font-mono text-[10px] tabular-nums text-muted-foreground">
                     {toPersianDigits(timed.length)}
                   </span>
-                  <span className="font-fa text-[10px] text-muted-foreground">{jalaliLabel}</span>
+                  {holiday ? (
+                    <span className="font-fa text-[10px] font-bold text-red-500 dark:text-red-400">
+                      {jalaliLabel} (تعطیل)
+                    </span>
+                  ) : (
+                    <span className="font-fa text-[10px] text-muted-foreground">{jalaliLabel}</span>
+                  )}
                 </span>
               </AccordionTrigger>
               <AccordionContent className="pb-3">
+                {isPresenceDay && (
+                  <div
+                    className="mb-2 flex flex-col gap-1 rounded-xl border border-dashed p-3"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--terminal) 40%, transparent)",
+                      background: "color-mix(in srgb, var(--terminal) 5%, transparent)",
+                    }}
+                  >
+                    <span
+                      className="flex items-center gap-1.5 font-fa text-xs font-bold"
+                      style={{ color: "var(--terminal)" }}
+                    >
+                      <GraduationCap className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {PRESENCE.label}
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        dir="ltr"
+                        className="font-mono text-[10px] tabular-nums text-foreground/55"
+                      >
+                        {PRESENCE.from} - {PRESENCE.to}
+                      </span>
+                      <span className="font-fa text-[10px] text-muted-foreground">
+                        {PRESENCE.hint}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {timed.length === 0 ? (
                   <p className="py-3 text-center font-fa text-xs text-muted-foreground">
-                    کلاسی در این روز نیست
+                    {isPresenceDay ? "کلاس ثابتی در این روز نیست — فقط حضور استاد" : "کلاسی در این روز نیست"}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {timed.map(({ c }) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => openClass(c.id)}
-                        className="w-full rounded-xl border p-3 text-start transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                        style={{
-                          borderInlineStart: `3px solid ${c.color}`,
-                          background: `${c.color}0f`,
-                          borderColor: `${c.color}40`,
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span
-                            className="truncate font-fa text-xs font-bold"
-                            style={{ color: c.color }}
-                          >
-                            {c.nameFa}
-                          </span>
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: c.color }}
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <p className="mt-1 flex min-w-0 items-center gap-1 font-fa text-[10px] text-foreground/70">
-                          <GraduationCap
-                            className="h-3 w-3 shrink-0"
-                            style={{ color: c.color }}
-                            aria-hidden="true"
-                          />
-                          <span className="truncate">استاد: {c.professor}</span>
-                        </p>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          <span
-                            dir="ltr"
-                            className="font-mono text-[10px] tabular-nums text-muted-foreground"
-                          >
-                            {c.time}
-                          </span>
-                          <span className="truncate font-fa text-[10px] text-muted-foreground">
-                            {c.location}
-                          </span>
-                        </div>
-                      </button>
+                      <MobileClassCard key={c.id} c={c} />
                     ))}
                   </div>
                 )}
@@ -439,40 +575,36 @@ export default function ScheduleGrid() {
         })}
       </Accordion>
 
-      {/* ---------- unscheduled classes ---------- */}
+      {/* ---------- unscheduled classes (big cards, like پروژه) ---------- */}
       {unscheduled.length > 0 && (
-        <div dir="rtl" className="mt-3">
-          <div className="mb-2 flex items-center gap-2">
-            <CircleDashed className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-            <span className="font-fa text-[11px] text-muted-foreground">
-              بدون زمان‌بندی — برای جزئیات و یادداشت بزنید
+        <section dir="rtl" aria-label="کلاس‌های بدون ساعت ثابت" className="mt-8">
+          <div className="mb-4 flex items-center gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+              style={{
+                background: "color-mix(in srgb, var(--plasma) 8%, transparent)",
+                color: "var(--plasma)",
+                borderColor: "color-mix(in srgb, var(--plasma) 19%, transparent)",
+              }}
+              aria-hidden="true"
+            >
+              <CircleDashed className="h-4 w-4" />
             </span>
+            <div className="min-w-0">
+              <h3 className="font-fa text-sm font-bold text-foreground">
+                کلاس‌های بدون ساعت ثابت
+              </h3>
+              <p className="font-fa text-xs text-muted-foreground">
+                مثل درس پروژه — ساعت مشخصی در برنامه هفتگی ندارند؛ برای جزئیات و یادداشت روی کارت بزنید
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {unscheduled.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => openClass(c.id)}
-                className="flex max-w-full items-center gap-2 rounded-full border py-1.5 pe-3 ps-2 transition-[filter] hover:brightness-110"
-                style={{ background: `${c.color}0f`, borderColor: `${c.color}40` }}
-              >
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: c.color }}
-                  aria-hidden="true"
-                />
-                <span className="truncate font-fa text-[11px] font-bold" style={{ color: c.color }}>
-                  {c.nameFa}
-                </span>
-                <span className="flex min-w-0 items-center gap-1 font-fa text-[10px] text-muted-foreground">
-                  <GraduationCap className="h-3 w-3 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{c.professor}</span>
-                </span>
-              </button>
+              <UnscheduledCard key={c.id} c={c} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* parallel-classes hint (e.g. Monday overlap) */}

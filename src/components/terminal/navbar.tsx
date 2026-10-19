@@ -3,7 +3,8 @@
 // WEEKLY//UNI — sticky terminal navbar (logo / pills / Tehran clock / bell popover / ⌘K)
 
 import * as React from "react"
-import { Bell, Command as CommandIcon, Terminal } from "lucide-react"
+import { Bell, Command as CommandIcon, Moon, Sun, Terminal } from "lucide-react"
+import { useTheme } from "next-themes"
 import { useUni } from "@/lib/store"
 import { tehranClock } from "@/lib/tehran"
 import { playSound, SOUND_LABELS, type SoundKind } from "@/lib/sounds"
@@ -95,6 +96,29 @@ function BellButton() {
   )
 }
 
+/** Dark/light mode toggle — sits next to the reminder bell */
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+  const isDark = mounted ? resolvedTheme !== "light" : true
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "حالت روشن" : "حالت تاریک"}
+      title={isDark ? "حالت روشن ☀" : "حالت تاریک ☾"}
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.03] text-terminal transition-colors hover:border-terminal/40 hover:bg-terminal/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      {isDark ? (
+        <Sun className="h-3.5 w-3.5" aria-hidden="true" />
+      ) : (
+        <Moon className="h-3.5 w-3.5" aria-hidden="true" />
+      )}
+    </button>
+  )
+}
+
 export default function Navbar() {
   const classes = useUni((s) => s.classes)
   const exams = useUni((s) => s.exams)
@@ -163,7 +187,8 @@ export default function Navbar() {
             <span className="text-[9px] font-bold tracking-widest text-terminal/70">TEH</span>
           </span>
 
-          {/* reminder bell + sounds popover */}
+          {/* dark/light toggle + reminder bell + sounds popover */}
+          <ThemeToggle />
           <BellButton />
 
           {/* command palette trigger */}

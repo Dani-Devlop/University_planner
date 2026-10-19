@@ -17,7 +17,7 @@ export const SEED: UniDB = {
     },
     {
       id: "2", name: "Operating System Lab", nameFa: "آزمایشگاه سیستم‌عامل", code: "5990102228",
-      professor: "جواد حسین‌خانی", location: "خوارزمی-۳", day: "Monday", time: "14:00 - 15:55",
+      professor: "جواد حسین‌خانی", location: "خوارزمی-۴۱۱", day: "Monday", time: "13:00 - 15:00",
       type: "0-1", color: "#22d3ee",
     },
     {

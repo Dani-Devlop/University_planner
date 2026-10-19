@@ -3,10 +3,12 @@
 // WEEKLY//UNI — exam & presentation tracker (glass cards + Jalali countdown + add dialog)
 
 import * as React from "react"
-import { CalendarPlus, GraduationCap, MapPin, Plus, Trash2 } from "lucide-react"
+import { CalendarPlus, Clock3, GraduationCap, MapPin, Plus, Trash2 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useUni } from "@/lib/store"
 import { toPersianDigits, isoToJalaliLabel, jalaliTodayISO, daysUntilISO } from "@/lib/jalali"
+import { accentFor } from "@/lib/colors"
 import type { UniExam } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -58,11 +60,23 @@ function isoToUTC(iso: string): number {
   return Date.UTC(y, m - 1, d)
 }
 
+const WEEKDAY_FA: Record<number, string> = {
+  0: "یکشنبه", 1: "دوشنبه", 2: "سه‌شنبه", 3: "چهارشنبه",
+  4: "پنج‌شنبه", 5: "جمعه", 6: "شنبه",
+}
+
+function weekdayFa(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`)
+  if (Number.isNaN(d.getTime())) return ""
+  return WEEKDAY_FA[d.getUTCDay()] ?? ""
+}
+
 /* ---------------- single exam card ---------------- */
 
 function ExamCard({ exam }: { exam: UniExam }) {
   const classes = useUni((s) => s.classes)
   const deleteExam = useUni((s) => s.deleteExam)
+  const accent = accentFor(exam.color, useTheme().resolvedTheme)
   const cls = classes.find((c) => c.id === exam.classId)
   const kind = KIND_META[exam.kind]
   const countdown = countdownLabel(daysUntilISO(exam.date))
@@ -70,29 +84,19 @@ function ExamCard({ exam }: { exam: UniExam }) {
   return (
     <div
       dir="rtl"
-      className="glass-card relative rounded-2xl p-4"
-      style={{ borderInlineStart: `3px solid ${exam.color}` }}
+      className="glass-card group relative overflow-hidden rounded-2xl p-5 transition-all hover:-translate-y-0.5"
+      style={{ borderInlineStart: `4px solid ${exam.color}` }}
     >
+      {/* top row: kind badge + delete */}
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <span
-            className={cn(
-              "inline-flex rounded-full border px-2 py-0.5 font-fa text-[10px] font-bold",
-              kind.badge
-            )}
-          >
-            {kind.label}
-          </span>
-          <p className="mt-1.5 truncate font-fa text-sm font-bold text-foreground">{exam.title}</p>
-          <p className="truncate font-fa text-[11px] text-muted-foreground">
-            {cls ? cls.nameFa : "—"}
-            {cls && (
-              <span dir="ltr" className="ms-1.5 font-mono text-[9px] opacity-70">
-                {cls.name}
-              </span>
-            )}
-          </p>
-        </div>
+        <span
+          className={cn(
+            "inline-flex rounded-full border px-2.5 py-1 font-fa text-[10px] font-bold",
+            kind.badge
+          )}
+        >
+          {kind.label}
+        </span>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
@@ -123,15 +127,39 @@ function ExamCard({ exam }: { exam: UniExam }) {
         </AlertDialog>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-2">
+      {/* title + course */}
+      <p className="mt-2.5 truncate font-fa text-base font-bold leading-snug text-foreground">
+        {exam.title}
+      </p>
+      <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate font-fa text-[11px] text-muted-foreground">
+        <GraduationCap className="h-3 w-3 shrink-0" style={{ color: accent }} aria-hidden="true" />
+        <span className="truncate">{cls ? cls.nameFa : "—"}</span>
+        {cls && (
+          <span dir="ltr" className="shrink-0 font-mono text-[9px] opacity-70">
+            {cls.name}
+          </span>
+        )}
+      </p>
+
+      {/* divider */}
+      <div className="my-3.5 h-px w-full" style={{ background: `${exam.color}26` }} />
+
+      {/* bottom: big Jalali date + countdown */}
+      <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-fa text-lg font-black leading-tight text-foreground">
+          <p className="font-fa text-xl font-black leading-tight" style={{ color: accent }}>
             {isoToJalaliLabel(exam.date)}
           </p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <p className="mt-0.5 font-fa text-[10px] text-muted-foreground">
+            {weekdayFa(exam.date)}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
             {exam.time && (
-              <span dir="ltr" className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                {exam.time}
+              <span className="flex items-center gap-0.5 font-fa text-[10px] text-muted-foreground">
+                <Clock3 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                <span dir="ltr" className="font-mono tabular-nums">
+                  {exam.time}
+                </span>
               </span>
             )}
             {exam.location && (
@@ -144,7 +172,7 @@ function ExamCard({ exam }: { exam: UniExam }) {
         </div>
         <span
           className={cn(
-            "shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-1 font-fa text-[10px] font-bold",
+            "shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 font-fa text-[11px] font-black",
             countdown.cls
           )}
         >
