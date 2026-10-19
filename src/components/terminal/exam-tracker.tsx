@@ -10,11 +10,15 @@ import {
   Loader2,
   MapPin,
   Timer,
+  BookOpenCheck,
+  Presentation,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useUni, emptyDraft, type ExamDraft } from "@/lib/store";
-import type { Exam, ExamKind } from "@/lib/types";
+import type { Exam, ExamKind, UniClass } from "@/lib/types";
+import { classColor } from "@/components/terminal/schedule-grid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -46,18 +50,37 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const KIND_META: Record<ExamKind, { label: string; color: string; badge: string }> = {
-  midterm: { label: "MIDTERM", color: "#00e5ff", badge: "border-cyber/40 text-cyber" },
-  final: { label: "FINAL", color: "#ff2d78", badge: "border-final/40 text-final" },
-  presentation: { label: "PRESENTATION", color: "#ffd166", badge: "border-amber/40 text-amber" },
+const KIND_META: Record<
+  ExamKind,
+  { label: string; fa: string; color: string; icon: React.ReactNode }
+> = {
+  midterm: {
+    label: "MIDTERM",
+    fa: "میان‌ترم",
+    color: "#22d3ee",
+    icon: <BookOpenCheck className="h-3 w-3" aria-hidden />,
+  },
+  final: {
+    label: "FINAL",
+    fa: "پایان‌ترم",
+    color: "#fb7185",
+    icon: <Flag className="h-3 w-3" aria-hidden />,
+  },
+  presentation: {
+    label: "PRESENTATION",
+    fa: "ارائه",
+    color: "#fbbf24",
+    icon: <Presentation className="h-3 w-3" aria-hidden />,
+  },
 };
 
-function countdown(dateISO: string): { text: string; urgent: boolean; past: boolean } {
+function countdown(dateISO: string): { text: string; fa: string; urgent: boolean; past: boolean } {
   const d = differenceInCalendarDays(parseISO(dateISO), new Date());
-  if (d < 0) return { text: `${-d}d ago`, urgent: false, past: true };
-  if (d === 0) return { text: "TODAY", urgent: true, past: false };
-  if (d <= 3) return { text: `${d}d left`, urgent: true, past: false };
-  return { text: `${d}d left`, urgent: false, past: false };
+  if (d < 0) return { text: `${-d}d ago`, fa: `${-d} روز پیش`, urgent: false, past: true };
+  if (d === 0) return { text: "TODAY", fa: "امروز!", urgent: true, past: false };
+  if (d === 1) return { text: "1d left", fa: "فردا", urgent: true, past: false };
+  if (d <= 3) return { text: `${d}d left`, fa: `${d} روز مانده`, urgent: true, past: false };
+  return { text: `${d}d left`, fa: `${d} روز مانده`, urgent: false, past: false };
 }
 
 export function ExamTracker() {
@@ -84,26 +107,32 @@ export function ExamTracker() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-2">
-        <p className="font-mono text-xs text-muted-foreground">
-          $ cat ~/exams/*.md | sort -u <span className="text-terminal">→</span> {upcoming.length} upcoming
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span dir="rtl" className="font-fa">
+            {upcoming.length > 0
+              ? `${upcoming.length} رویداد پیش‌رو`
+              : "هنوز رویدادی ثبت نشده"}
+          </span>
+          <span className="font-mono text-muted-foreground/50">· sorted by date</span>
         </p>
         <Button
           size="sm"
           onClick={() => setExamDialog(true, null)}
-          className="gap-1.5 bg-terminal font-mono text-xs font-bold text-black hover:bg-terminal/85"
+          className="gap-1.5 rounded-full bg-terminal font-semibold text-black hover:bg-terminal/85"
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden /> add_exam
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          <span dir="rtl" className="font-fa">افزودن رویداد</span>
         </Button>
       </div>
 
       {sorted.length === 0 && (
-        <div className="rounded-lg border border-dashed border-terminal/20 bg-white/[0.02] p-10 text-center">
-          <CalendarClock className="mx-auto mb-3 h-8 w-8 text-terminal/40" aria-hidden />
-          <p className="font-mono text-sm text-muted-foreground">
-            no assessments tracked yet
+        <div className="rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.015] p-10 text-center">
+          <CalendarClock className="mx-auto mb-3 h-9 w-9 text-terminal/40" aria-hidden />
+          <p dir="rtl" className="font-fa text-sm text-muted-foreground">
+            هنوز امتحان یا ارائه‌ای ثبت نشده است
           </p>
-          <p className="mt-1 font-mono text-xs text-muted-foreground/60">
-            press <kbd className="rounded border border-terminal/30 px-1 font-mono text-terminal">⌘K</kbd> → “add exam”
+          <p dir="rtl" className="mt-1 font-fa text-xs text-muted-foreground/60">
+            با دکمه‌ی بالا یا <kbd className="rounded border border-terminal/30 px-1 font-mono text-terminal" dir="ltr">⌘K</kbd> اضافه کنید
           </p>
         </div>
       )}
@@ -111,45 +140,61 @@ export function ExamTracker() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <AnimatePresence mode="popLayout">
           {upcoming.map((exam, i) => (
-            <ExamCard key={exam.id} exam={exam} index={i} onEdit={() => setExamDialog(true, exam.id)} onDelete={() => setConfirmId(exam.id)} classNameFor={KIND_META} classes={classes} />
+            <ExamCard
+              key={exam.id}
+              exam={exam}
+              index={i}
+              onEdit={() => setExamDialog(true, exam.id)}
+              onDelete={() => setConfirmId(exam.id)}
+              classes={classes}
+            />
           ))}
         </AnimatePresence>
       </div>
 
       {past.length > 0 && (
         <div className="mt-6">
-          <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-            {"// archived"}
+          <h4 dir="rtl" className="mb-2 font-fa text-[11px] text-muted-foreground/50">
+            گذشته‌ها
           </h4>
           <div className="grid gap-3 opacity-50 md:grid-cols-2 xl:grid-cols-3">
             {past.map((exam, i) => (
-              <ExamCard key={exam.id} exam={exam} index={i} onEdit={() => setExamDialog(true, exam.id)} onDelete={() => setConfirmId(exam.id)} classNameFor={KIND_META} classes={classes} />
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                index={i}
+                onEdit={() => setExamDialog(true, exam.id)}
+                onDelete={() => setConfirmId(exam.id)}
+                classes={classes}
+              />
             ))}
           </div>
         </div>
       )}
 
       <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
-        <AlertDialogContent className="border-terminal/30 bg-background/95 backdrop-blur-xl">
+        <AlertDialogContent className="border-white/[0.1] bg-popover/95 backdrop-blur-2xl sm:rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-mono">rm ~/exams/{confirmTarget?.title}</AlertDialogTitle>
-            <AlertDialogDescription className="font-mono text-xs">
-              This permanently deletes the assessment entry from db.json.
+            <AlertDialogTitle dir="rtl" className="font-fa">
+              حذف «{confirmTarget?.title}»؟
+            </AlertDialogTitle>
+            <AlertDialogDescription dir="rtl" className="font-fa text-xs">
+              این رویداد برای همیشه از دیتابیس حذف می‌شود و قابل بازگشت نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="font-mono">cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">انصراف</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500/90 font-mono text-white hover:bg-red-500"
+              className="rounded-full bg-red-500/90 text-white hover:bg-red-500"
               onClick={() => {
                 if (confirmId) {
                   deleteExam(confirmId);
-                  toast.success("entry removed from db.json");
+                  toast.success("رویداد حذف شد");
                 }
                 setConfirmId(null);
               }}
             >
-              delete
+              حذف
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -169,12 +214,11 @@ function ExamCard({
   index: number;
   onEdit: () => void;
   onDelete: () => void;
-  classes: { id: string; name: string }[];
-  classNameFor: Record<ExamKind, { label: string; color: string; badge: string }>;
+  classes: UniClass[];
 }) {
   const meta = KIND_META[exam.kind];
   const cd = countdown(exam.date);
-  const clsName = classes.find((c) => c.id === exam.classId)?.name;
+  const linked = classes.find((c) => c.id === exam.classId);
 
   return (
     <motion.div
@@ -184,43 +228,57 @@ function ExamCard({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.04 }}
       whileHover={{ y: -3 }}
-      style={{ borderTopColor: meta.color }}
-      className="glass-card group relative rounded-lg border-t-2 p-4 transition-shadow hover:shadow-[0_0_24px_rgba(0,255,65,0.25)]"
+      style={
+        {
+          "--c": meta.color,
+          borderColor: "rgba(255,255,255,0.08)",
+          background: `linear-gradient(165deg, ${meta.color}12, rgba(255,255,255,0.015) 45%)`,
+        } as React.CSSProperties
+      }
+      className="group relative rounded-2xl border p-4 transition-shadow hover:border-[var(--c)]/40 hover:shadow-[0_12px_36px_var(--c)]/25"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={`font-mono text-[9px] font-bold tracking-wider ${meta.badge}`}>
-              {meta.label}
+            <Badge
+              variant="outline"
+              style={{ borderColor: `${meta.color}55`, color: meta.color }}
+              className="gap-1 rounded-full bg-transparent font-mono text-[9px] font-bold tracking-wider"
+            >
+              {meta.icon} {meta.fa}
             </Badge>
             {!cd.past && (
               <span
-                className={`flex items-center gap-1 font-mono text-[10px] font-bold ${
-                  cd.urgent ? "animate-pulse text-red-400" : "text-terminal/80"
+                dir="rtl"
+                className={`flex items-center gap-1 font-fa text-[11px] font-bold ${
+                  cd.urgent ? "animate-pulse text-red-400" : "text-terminal/85"
                 }`}
               >
-                <Timer className="h-3 w-3" aria-hidden /> {cd.text}
+                <Timer className="h-3 w-3" aria-hidden /> {cd.fa}
               </span>
             )}
           </div>
-          <h4 className="mt-2 truncate font-mono text-sm font-bold text-foreground group-hover:text-terminal">
-            {exam.title}
-          </h4>
-          <div className="mt-1.5 space-y-0.5 font-mono text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <CalendarClock className="h-3 w-3 text-terminal/60" aria-hidden />
+          <h4 className="mt-2 truncate text-sm font-bold text-foreground">{exam.title}</h4>
+          <div className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 font-mono tabular-nums">
+              <CalendarClock className="h-3 w-3" style={{ color: meta.color }} aria-hidden />
               {format(parseISO(exam.date), "EEE dd MMM yyyy")}
-              {exam.time && <span className="text-terminal/70">· {exam.time}</span>}
+              {exam.time && <span style={{ color: meta.color }}>· {exam.time}</span>}
             </div>
             {exam.location && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-3 w-3 text-terminal/60" aria-hidden /> {exam.location}
+              <div dir="rtl" className="flex items-center gap-1.5 font-fa">
+                <MapPin className="h-3 w-3 shrink-0" style={{ color: meta.color }} aria-hidden />
+                {exam.location}
               </div>
             )}
-            {clsName && <div className="text-cyber/80">↳ {clsName}</div>}
+            {linked && (
+              <div dir="rtl" className="flex items-center gap-1.5 font-fa" style={{ color: classColor(linked) }}>
+                ↳ درس: {linked.name}
+              </div>
+            )}
           </div>
           {exam.note && (
-            <p className="mt-2 line-clamp-2 border-l border-terminal/30 pl-2 text-[11px] italic text-muted-foreground/80">
+            <p dir="rtl" className="mt-2 line-clamp-2 border-r-2 border-white/10 pr-2 text-[11px] italic text-muted-foreground/80 font-fa">
               {exam.note}
             </p>
           )}
@@ -230,7 +288,7 @@ function ExamCard({
             size="icon"
             variant="ghost"
             onClick={onEdit}
-            className="h-7 w-7 hover:bg-terminal/15 hover:text-terminal"
+            className="h-7 w-7 rounded-full hover:bg-white/[0.08] hover:text-foreground"
             aria-label={`Edit ${exam.title}`}
           >
             <Pencil className="h-3.5 w-3.5" aria-hidden />
@@ -239,7 +297,7 @@ function ExamCard({
             size="icon"
             variant="ghost"
             onClick={onDelete}
-            className="h-7 w-7 hover:bg-red-500/15 hover:text-red-400"
+            className="h-7 w-7 rounded-full hover:bg-red-500/15 hover:text-red-400"
             aria-label={`Delete ${exam.title}`}
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -288,10 +346,10 @@ export function ExamDialog() {
     try {
       const ok = editingExamId ? await updateExam(editingExamId, draft) : await addExam(draft);
       if (ok) {
-        toast.success(editingExamId ? "exam updated" : "exam added to db.json");
+        toast.success(editingExamId ? "رویداد به‌روزرسانی شد" : "رویداد اضافه شد");
         setExamDialog(false);
       } else {
-        toast.error("validation failed on server");
+        toast.error("خطای اعتبارسنجی سرور");
       }
     } finally {
       setBusy(false);
@@ -300,115 +358,117 @@ export function ExamDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setExamDialog}>
-      <DialogContent className="max-w-md border-terminal/30 bg-background/95 backdrop-blur-xl">
+      <DialogContent className="max-w-md border-white/[0.1] bg-popover/95 backdrop-blur-2xl sm:rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="font-mono">
-            <span className="text-terminal">$</span> {editing ? "edit_assessment" : "new_assessment"}
+          <DialogTitle dir="rtl" className="font-fa">
+            {editing ? "ویرایش رویداد" : "رویداد جدید"}
           </DialogTitle>
-          <DialogDescription className="font-mono text-xs">
-            {editing ? `--patch ${editing.id}` : "--method POST ~/exams/"}
+          <DialogDescription dir="rtl" className="font-fa text-xs text-muted-foreground">
+            امتحان، میان‌ترم یا ارائه را به تقویم اضافه کنید
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="ex-title" className="font-mono text-xs text-muted-foreground">TITLE *</Label>
+            <Label htmlFor="ex-title" dir="rtl" className="font-fa text-xs text-muted-foreground">عنوان *</Label>
             <Input
               id="ex-title"
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Data Structures — Midterm"
-              className="border-terminal/25 bg-black/40 font-mono focus-visible:ring-terminal/50"
+              placeholder="میان‌ترم ساختمان داده‌ها"
+              className="rounded-xl border-white/[0.09] bg-black/40 font-fa focus-visible:ring-terminal/40"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="font-mono text-xs text-muted-foreground">KIND</Label>
+              <Label dir="rtl" className="font-fa text-xs text-muted-foreground">نوع</Label>
               <Select value={draft.kind} onValueChange={(v) => setDraft({ ...draft, kind: v as ExamKind })}>
-                <SelectTrigger className="border-terminal/25 bg-black/40 font-mono text-xs focus:ring-terminal/50">
-                  <SelectValue placeholder="kind" />
+                <SelectTrigger className="rounded-xl border-white/[0.09] bg-black/40 text-xs focus:ring-terminal/40">
+                  <SelectValue placeholder="نوع" />
                 </SelectTrigger>
-                <SelectContent className="border-terminal/30 bg-background font-mono">
-                  <SelectItem value="midterm">MIDTERM</SelectItem>
-                  <SelectItem value="final">FINAL</SelectItem>
-                  <SelectItem value="presentation">PRESENTATION</SelectItem>
+                <SelectContent className="border-white/[0.1] bg-popover">
+                  <SelectItem value="midterm" dir="rtl" className="font-fa">میان‌ترم</SelectItem>
+                  <SelectItem value="final" dir="rtl" className="font-fa">پایان‌ترم</SelectItem>
+                  <SelectItem value="presentation" dir="rtl" className="font-fa">ارائه</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ex-date" className="font-mono text-xs text-muted-foreground">DATE *</Label>
+              <Label htmlFor="ex-date" dir="rtl" className="font-fa text-xs text-muted-foreground">تاریخ *</Label>
               <Input
                 id="ex-date"
                 type="date"
                 value={draft.date}
                 onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-                className="border-terminal/25 bg-black/40 font-mono text-xs focus-visible:ring-terminal/50"
+                className="rounded-xl border-white/[0.09] bg-black/40 font-mono text-xs focus-visible:ring-terminal/40"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="ex-time" className="font-mono text-xs text-muted-foreground">TIME</Label>
+              <Label htmlFor="ex-time" dir="rtl" className="font-fa text-xs text-muted-foreground">ساعت</Label>
               <Input
                 id="ex-time"
                 type="time"
                 value={draft.time}
                 onChange={(e) => setDraft({ ...draft, time: e.target.value })}
-                className="border-terminal/25 bg-black/40 font-mono text-xs focus-visible:ring-terminal/50"
+                className="rounded-xl border-white/[0.09] bg-black/40 font-mono text-xs focus-visible:ring-terminal/40"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ex-loc" className="font-mono text-xs text-muted-foreground">LOCATION</Label>
+              <Label htmlFor="ex-loc" dir="rtl" className="font-fa text-xs text-muted-foreground">محل</Label>
               <Input
                 id="ex-loc"
                 value={draft.location}
                 onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                placeholder="Khwarizmi-215"
-                className="border-terminal/25 bg-black/40 font-mono text-xs focus-visible:ring-terminal/50"
+                placeholder="خوارزمی-۲۱۵"
+                className="rounded-xl border-white/[0.09] bg-black/40 font-fa text-xs focus-visible:ring-terminal/40"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-mono text-xs text-muted-foreground">LINKED CLASS</Label>
+            <Label dir="rtl" className="font-fa text-xs text-muted-foreground">درس مرتبط</Label>
             <Select value={draft.classId || "none"} onValueChange={(v) => setDraft({ ...draft, classId: v === "none" ? "" : v })}>
-              <SelectTrigger className="border-terminal/25 bg-black/40 font-mono text-xs focus:ring-terminal/50">
-                <SelectValue placeholder="none" />
+              <SelectTrigger className="rounded-xl border-white/[0.09] bg-black/40 text-xs focus:ring-terminal/40">
+                <SelectValue placeholder="—" />
               </SelectTrigger>
-              <SelectContent className="border-terminal/30 bg-background font-mono">
-                <SelectItem value="none">— none —</SelectItem>
+              <SelectContent className="border-white/[0.1] bg-popover">
+                <SelectItem value="none" dir="rtl" className="font-fa">— بدون درس —</SelectItem>
                 {classes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    <span dir="ltr" className="text-xs">{c.name}</span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="ex-note" className="font-mono text-xs text-muted-foreground">NOTE</Label>
+            <Label htmlFor="ex-note" dir="rtl" className="font-fa text-xs text-muted-foreground">یادداشت</Label>
             <Textarea
               id="ex-note"
               value={draft.note}
               onChange={(e) => setDraft({ ...draft, note: e.target.value })}
-              placeholder="chapters 1-4, closed book…"
-              className="min-h-[60px] border-terminal/25 bg-black/40 font-mono text-xs focus-visible:ring-terminal/50"
+              placeholder="فصل‌های ۱ تا ۴، بدون کتاب…"
+              className="min-h-[60px] rounded-xl border-white/[0.09] bg-black/40 font-fa text-xs focus-visible:ring-terminal/40"
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setExamDialog(false)} className="font-mono text-xs">
-            cancel
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setExamDialog(false)} className="rounded-full font-fa">
+            انصراف
           </Button>
           <Button
             onClick={submit}
             disabled={!valid || busy}
-            className="gap-1.5 bg-terminal font-mono text-xs font-bold text-black hover:bg-terminal/85"
+            className="gap-1.5 rounded-full bg-terminal font-semibold text-black hover:bg-terminal/85"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
-            {editing ? "patch" : "create"}
+            <span dir="rtl" className="font-fa">{editing ? "ذخیره تغییرات" : "افزودن"}</span>
           </Button>
         </DialogFooter>
       </DialogContent>

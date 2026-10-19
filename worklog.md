@@ -56,3 +56,22 @@ Stage Summary:
 - Notes/exams persist across redeploys via /app/data volume; DB self-seeds if empty
 - CLI session token stored in ~/.railway/config.json for future deploys (railway up)
 - Service still named "function-bun" (cosmetic); sleepApplication=true (function-template default)
+
+---
+Task ID: ui-rebuild-data-fix
+Agent: Z.ai Code (main)
+Task: Fix schedule data per user's corrected version + full UI rebuild ("Midnight Campus")
+
+Work Log:
+- Corrected db seed (src/lib/db.ts SEED + data/db.json) to user's exact schedule: Data Structures moved Wednesday→Monday 13:00-15:55; professor fixes (نیما خوز، جواد حسین‌خانی، سیدحمیدرضا فاطمی، مهدی امیرمیاندرق، محمدعلی اسماعیل‌زاده، محمد فدائیان); codes 5990101495 & 5990114704; PE location سالن ۱; added nameFa + per-course color fields (types.ts, classes PUT route extended)
+- New src/lib/tehran.ts: dayName/minutes/clock/dateISO/jalali/gregorian (Asia/Tehran, Jalali via fa-IR-u-ca-persian)
+- globals.css rebuilt: ambient aurora gradients (no scanlines), neutral white borders, .glass-card refined, dot-live pulse, font-fa=Vazirmatn (next/font)
+- Rebuilt UI: navbar (glass pills + TEH clock), page (hero + Jalali date chips + 4 stat cards: units 12 / today 3 / weekly 5 / exams), schedule-grid (Sat→Thu 6 cols w/ Persian day labels, TODAY highlight, red now-line, colored overlap blocks w/ nameFa, mobile accordion w/ colored cards + Persian empty states), class-modal (color chip, Persian field grid, md/preview, Persian save flow), exam-tracker (Persian labels/countdowns/kinds), command-palette (Persian searchable), status-bar (LIVE dot + db stats + Jalali date)
+- Lint clean, tsc src clean; fixed set-state-in-effect via useSyncExternalStore, PlacedClass typing, UniClass import
+- Browser-verified locally: desktop 1440 full page, modal Persian fields, note save roundtrip (cleaned), palette Persian, exam create→card "امروز!"→deleted, mobile 390 accordion
+- Deployed: railway up → e0ceb897 SUCCESS; volume had stale db → railway volume files blocked (no SSH keys on account) → updated live db via 6× PUT /api/classes/[id] with full corrected payloads
+- Live verified: /api/schedule shows corrected classes, full-page screenshot clean, 0 errors
+
+Stage Summary:
+- https://weeklyuni.up.railway.app = corrected schedule + rebuilt "Midnight Campus" UI (bilingual EN/FA, per-course colors, today+now indicators)
+- Week starts Saturday (شنبه) per Iranian academic week; Monday shows 3 parallel classes via overlap columns

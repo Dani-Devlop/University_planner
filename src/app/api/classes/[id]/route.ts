@@ -17,12 +17,14 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     d.classes[idx] = {
       ...d.classes[idx],
       name: body.name !== undefined ? String(body.name) : d.classes[idx].name,
+      nameFa: body.nameFa !== undefined ? String(body.nameFa) : d.classes[idx].nameFa,
       code: body.code !== undefined ? String(body.code) : d.classes[idx].code,
       professor: body.professor !== undefined ? String(body.professor) : d.classes[idx].professor,
       location: body.location !== undefined ? String(body.location) : d.classes[idx].location,
       day: body.day !== undefined ? String(body.day) : d.classes[idx].day,
       time: body.time !== undefined ? String(body.time) : d.classes[idx].time,
       type: body.type !== undefined ? String(body.type) : d.classes[idx].type,
+      color: body.color !== undefined ? String(body.color) : d.classes[idx].color,
     };
     return { result: d.classes[idx], db: d };
   });

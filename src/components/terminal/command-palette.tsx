@@ -1,17 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   CalendarClock,
   GraduationCap,
-  Pencil,
   Plus,
   TerminalSquare,
   ArrowDown,
   StickyNote,
 } from "lucide-react";
 import { useUni } from "@/lib/store";
+import { dayFa, classColor } from "@/components/terminal/schedule-grid";
 import {
   CommandDialog,
   CommandEmpty,
@@ -39,80 +38,83 @@ export function CommandPalette() {
     setTimeout(action, 80);
   };
 
+  const upcomingExams = useMemo(
+    () => [...exams].sort((a, b) => a.date.localeCompare(b.date)),
+    [exams]
+  );
+
   return (
     <CommandDialog open={open} onOpenChange={setPaletteOpen}>
-      <CommandInput placeholder="Type a command or search…" className="font-mono" />
+      <CommandInput placeholder="جستجوی درس یا دستور… (search)" className="font-fa" />
       <CommandList>
-        <CommandEmpty className="font-mono text-xs text-muted-foreground">
-          $ no results — try another query_
+        <CommandEmpty className="py-4 text-center font-fa text-xs text-muted-foreground">
+          نتیجه‌ای پیدا نشد — عبارت دیگری امتحان کنید
         </CommandEmpty>
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading="دستورها">
           <CommandItem
             onSelect={() => run(() => setExamDialog(true, null))}
-            className="gap-2 font-mono text-xs"
+            className="gap-2.5"
           >
             <Plus className="h-4 w-4 text-terminal" aria-hidden />
-            Add new exam / presentation
-            <span className="ml-auto text-[10px] text-muted-foreground">new assessment</span>
+            <span dir="rtl" className="font-fa text-xs">افزودن امتحان / ارائه</span>
+            <span className="ml-auto font-mono text-[10px] text-muted-foreground/60">new exam</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => run(() => scrollTo("schedule"))}
-            className="gap-2 font-mono text-xs"
-          >
+          <CommandItem onSelect={() => run(() => scrollTo("schedule"))} className="gap-2.5">
             <CalendarClock className="h-4 w-4 text-cyber" aria-hidden />
-            Go to weekly schedule
+            <span dir="rtl" className="font-fa text-xs">برو به برنامه هفتگی</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => run(() => scrollTo("exams"))}
-            className="gap-2 font-mono text-xs"
-          >
+          <CommandItem onSelect={() => run(() => scrollTo("exams"))} className="gap-2.5">
             <GraduationCap className="h-4 w-4 text-amber" aria-hidden />
-            Go to exam tracker
+            <span dir="rtl" className="font-fa text-xs">برو به امتحان‌ها</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => run(() => scrollTo("unscheduled"))}
-            className="gap-2 font-mono text-xs"
-          >
+          <CommandItem onSelect={() => run(() => scrollTo("unscheduled"))} className="gap-2.5">
             <ArrowDown className="h-4 w-4 text-plasma" aria-hidden />
-            Jump to unscheduled classes
+            <span dir="rtl" className="font-fa text-xs">درس‌های بدون تقویم</span>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="Classes — jump to notes">
+        <CommandGroup heading="کلاس‌ها — یادداشت‌ها">
           {classes.map((c) => (
             <CommandItem
               key={c.id}
-              value={`${c.name} ${c.code} ${c.professor} ${c.day}`}
+              value={`${c.name} ${c.nameFa ?? ""} ${c.code} ${c.professor} ${c.day} ${dayFa(c.day)}`}
               onSelect={() => run(() => selectClass(c.id))}
-              className="gap-2 font-mono text-xs"
+              className="gap-2.5"
             >
-              <StickyNote className="h-4 w-4 text-terminal/70" aria-hidden />
-              <span className="font-bold">{c.name}</span>
-              <span className="text-muted-foreground">· {c.day}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground/60">{c.code}</span>
+              <span
+                className="h-3.5 w-1 rounded-full"
+                style={{ background: classColor(c) }}
+                aria-hidden
+              />
+              <span className="text-xs font-bold">{c.name}</span>
+              {c.nameFa && (
+                <span dir="rtl" className="font-fa text-[11px] text-muted-foreground">{c.nameFa}</span>
+              )}
+              <span dir="rtl" className="font-fa text-[11px] text-muted-foreground/70">· {dayFa(c.day)}</span>
+              <span className="ml-auto font-mono text-[10px] text-muted-foreground/50">{c.code}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
-        <CommandGroup heading="Assessments">
-          {exams.length === 0 && (
-            <div className="px-3 py-2 font-mono text-[11px] text-muted-foreground/60">
-              no assessments tracked — add one with “Add new exam”
+        <CommandGroup heading="رویدادها">
+          {upcomingExams.length === 0 && (
+            <div dir="rtl" className="px-3 py-2 font-fa text-[11px] text-muted-foreground/60">
+              رویدادی ثبت نشده — با «افزودن امتحان» شروع کنید
             </div>
           )}
-          {exams.map((e) => (
+          {upcomingExams.map((e) => (
             <CommandItem
               key={e.id}
               value={`${e.title} ${e.kind} ${e.date}`}
               onSelect={() => run(() => scrollTo("exams"))}
-              className="gap-2 font-mono text-xs"
+              className="gap-2.5"
             >
-              <Pencil className="h-4 w-4 text-amber/80" aria-hidden />
-              {e.title}
-              <span className="ml-auto text-[10px] text-muted-foreground">{e.date}</span>
+              <StickyNote className="h-4 w-4 text-amber/80" aria-hidden />
+              <span dir="rtl" className="font-fa text-xs">{e.title}</span>
+              <span className="ml-auto font-mono text-[10px] text-muted-foreground">{e.date}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -120,7 +122,7 @@ export function CommandPalette() {
         <CommandGroup heading="System">
           <CommandItem
             onSelect={() => run(() => window.open("/api/schedule", "_blank"))}
-            className="gap-2 font-mono text-xs"
+            className="gap-2.5 font-mono text-xs"
           >
             <TerminalSquare className="h-4 w-4 text-terminal" aria-hidden />
             Dump raw db.json (GET /api/schedule)

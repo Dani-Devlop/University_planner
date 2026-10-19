@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -12,6 +12,12 @@ const inter = Inter({
 const jetbrains = JetBrains_Mono({
   variable: "--font-ui-mono",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const vazirmatn = Vazirmatn({
+  variable: "--font-ui-fa",
+  subsets: ["arabic"],
   display: "swap",
 });
 
@@ -50,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrains.variable} antialiased bg-background text-foreground font-sans`}
+        className={`${inter.variable} ${jetbrains.variable} ${vazirmatn.variable} antialiased bg-background text-foreground font-sans`}
       >
         {children}
         <Toaster theme="dark" position="bottom-right" />

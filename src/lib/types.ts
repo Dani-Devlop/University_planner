@@ -5,12 +5,14 @@ export type ClassType = string; // "0-2" = theory-lab units, kept as raw string
 export interface UniClass {
   id: string;
   name: string;
+  nameFa?: string; // Persian title, e.g. "ساختمان داده‌ها"
   code: string;
-  professor: string;
-  location: string;
+  professor: string; // Persian as written by the university
+  location: string; // Persian as written by the university
   day: string; // Monday | Tuesday | ... | Unscheduled
   time: string; // "14:00 - 16:55" | "N/A"
   type: ClassType;
+  color?: string; // hex accent used across the UI
 }
 
 export type ExamKind = "midterm" | "final" | "presentation";
