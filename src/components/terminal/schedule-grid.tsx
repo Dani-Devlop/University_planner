@@ -136,6 +136,7 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
   return (
     <button
       type="button"
+      dir="rtl"
       onClick={() => openClass(c.id)}
       className="group flex h-full w-full min-w-0 cursor-pointer flex-col gap-0.5 overflow-hidden rounded-lg border p-1.5 text-start transition-[filter] hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       style={{
@@ -165,7 +166,7 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
           استاد: {c.professor}
         </TooltipContent>
       </Tooltip>
-      <span dir="ltr" className="truncate font-mono text-[9px] tabular-nums leading-tight text-foreground/60">
+      <span dir="ltr" className="truncate text-right font-mono text-[9px] tabular-nums leading-tight text-foreground/60">
         {c.time}
       </span>
       <span className="truncate font-fa text-[9px] leading-tight text-muted-foreground">
@@ -183,6 +184,7 @@ function MobileClassCard({ c }: { c: UniClass }) {
   return (
     <button
       type="button"
+      dir="rtl"
       onClick={() => openClass(c.id)}
       className="w-full rounded-xl border p-3 text-start transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       style={{
@@ -221,6 +223,7 @@ function UnscheduledCard({ c }: { c: UniClass }) {
   return (
     <button
       type="button"
+      dir="rtl"
       onClick={() => openClass(c.id)}
       title={c.nameFa}
       className="glass-card flex min-h-36 w-full cursor-pointer flex-col justify-between rounded-2xl p-5 text-start transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -353,7 +356,7 @@ function DayColumn({
               <GraduationCap className="h-3 w-3 shrink-0" aria-hidden="true" />
               {PRESENCE.label}
             </span>
-            <span dir="ltr" className="font-mono text-[9px] tabular-nums leading-tight text-foreground/55">
+            <span dir="ltr" className="text-right font-mono text-[9px] tabular-nums leading-tight text-foreground/55">
               {PRESENCE.from} - {PRESENCE.to}
             </span>
             <span className="font-fa text-[9px] leading-tight text-muted-foreground">
@@ -498,9 +501,10 @@ export default function ScheduleGrid() {
             <AccordionItem
               key={day}
               value={day}
+              dir="rtl"
               className="glass-card mb-2 rounded-xl border-0 px-3"
             >
-              <AccordionTrigger className="gap-2 py-3 hover:no-underline [&>svg]:text-muted-foreground">
+              <AccordionTrigger className="gap-2 py-3 text-start hover:no-underline [&>svg]:text-muted-foreground">
                 <span className="flex items-center gap-2">
                   <span className="font-fa text-sm font-bold text-foreground">
                     {DAY_NAMES_FA[day] ?? day}
@@ -511,15 +515,12 @@ export default function ScheduleGrid() {
                     </span>
                   )}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="ms-auto flex items-center gap-2">
                   {holiday && (
                     <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 font-fa text-[9px] font-bold text-red-500 dark:text-red-400">
                       تعطیل
                     </span>
                   )}
-                  <span className="rounded-full bg-white/[0.08] px-1.5 font-mono text-[10px] tabular-nums text-muted-foreground">
-                    {toPersianDigits(timed.length)}
-                  </span>
                   {holiday ? (
                     <span className="font-fa text-[10px] font-bold text-red-500 dark:text-red-400">
                       {jalaliLabel} (تعطیل)
@@ -548,7 +549,7 @@ export default function ScheduleGrid() {
                     <div className="flex items-center justify-between gap-2">
                       <span
                         dir="ltr"
-                        className="font-mono text-[10px] tabular-nums text-foreground/55"
+                        className="text-right font-mono text-[10px] tabular-nums text-foreground/55"
                       >
                         {PRESENCE.from} - {PRESENCE.to}
                       </span>

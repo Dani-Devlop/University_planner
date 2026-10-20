@@ -172,8 +172,16 @@ export function playSound(kind: SoundKind) {
   }
 }
 
+/** Functional labels — what the sound is FOR (user-facing) */
 export const SOUND_LABELS: Record<SoundKind, string> = {
-  class: "زنگ دینگ‌دونگ",
-  exam: "آژیر سه‌ضرب",
-  presentation: "آرپژ صحنه",
+  class: "اعلام یادآوری کلاس",
+  exam: "اعلام یادآوری امتحان",
+  presentation: "اعلام یادآوری ارائه",
+};
+
+/** Short character + schedule hint for each signature */
+export const SOUND_HINTS: Record<SoundKind, string> = {
+  class: "زنگ دینگ‌دونگ — ۹۰ و ۶۰ دقیقه قبل از شروع کلاس",
+  exam: "آژیر — ۹۰ و ۶۰ دقیقه قبل از امتحان",
+  presentation: "آرپژ — ۴ روز و ۲ روز قبل از ارائه",
 };

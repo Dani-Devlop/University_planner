@@ -52,6 +52,18 @@ export function resetFired() {
   } catch { /* noop */ }
 }
 
+export const NOTIFS_ENABLED_KEY = "wu.notifs.enabled";
+
+/** App-level reminder switch (separate from browser permission). Default: enabled. */
+export function notifsEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(NOTIFS_ENABLED_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
 /** Build class reminders due within this tick window */
 export function computeClassReminders(classes: UniClass[], now: Date): ReminderItem[] {
   const out: ReminderItem[] = [];

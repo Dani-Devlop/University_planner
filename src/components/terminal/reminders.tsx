@@ -5,7 +5,7 @@
 
 import * as React from "react"
 import { useUni } from "@/lib/store"
-import { computeAllReminders, fireReminder } from "@/lib/reminders"
+import { computeAllReminders, fireReminder, notifsEnabled } from "@/lib/reminders"
 import { toPersianDigits } from "@/lib/jalali"
 import type { ReminderItem } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
@@ -72,6 +72,8 @@ export function ReminderEngine() {
 
     const check = (now: Date) => {
       if (stopped) return
+      // user-level notification switch (popover toggle) — skip everything when off
+      if (!notifsEnabled()) return
       const items = computeAllReminders(classes, exams, now)
       for (const item of items) {
         if (stopped) return
