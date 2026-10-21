@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const ALLOWED: Array<keyof UniExam> = ["classId", "title", "date", "time", "kind", "location", "color"];
+const ALLOWED: Array<keyof UniExam> = ["classId", "title", "date", "time", "kind", "location", "color", "notes"];
 
 export async function PUT(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;

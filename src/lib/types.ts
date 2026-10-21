@@ -46,6 +46,8 @@ export interface UniExam {
   kind: "exam" | "presentation";
   location: string;
   color: string;
+  /** Free-form user notes/description (توضیحات و یادداشت) */
+  notes: string;
 }
 
 /** Notes keyed by class id (markdown-ish text) */

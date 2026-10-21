@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     kind: body.kind === "presentation" ? "presentation" : "exam",
     location: body.location ?? "",
     color: body.color ?? "",
+    notes: body.notes ?? "",
   };
   db.exams.push(exam);
   writeDb(db);
