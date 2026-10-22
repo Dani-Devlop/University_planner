@@ -167,11 +167,11 @@ function ExamCard({ exam, onEdit }: { exam: UniExam; onEdit: (ex: UniExam) => vo
         )}
       </p>
 
-      {/* notes preview (only when a note exists) */}
+      {/* notes preview — Enter line-breaks preserved (whitespace-pre-line), up to 3 lines */}
       {notes && (
         <p className="mt-1.5 flex min-w-0 items-start gap-1 rounded-md bg-white/[0.03] px-1.5 py-1 text-[10px] leading-relaxed text-muted-foreground">
           <StickyNote className="mt-0.5 h-3 w-3 shrink-0 text-amber/80" aria-hidden="true" />
-          <span className="line-clamp-1 break-words whitespace-normal">{notes}</span>
+          <span className="line-clamp-3 break-words whitespace-pre-line">{notes}</span>
         </p>
       )}
 
@@ -422,7 +422,7 @@ function ExamDialog({
             <Textarea
               id="exam-notes"
               dir="rtl"
-              rows={3}
+              rows={4}
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="مثلاً: از استاد بپرسم نحوه امتحان گرفتن چطوریه — تشریحی یا تستی…"
