@@ -1,0 +1,8 @@
+{
+  "name": "deploy-watch",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun index.ts"
+  }
+}

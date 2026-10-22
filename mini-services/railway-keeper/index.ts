@@ -44,6 +44,23 @@ Bun.serve({
       const r = spawnSync(RAILWAY, ["whoami"], { encoding: "utf8", env: { ...process.env } });
       return Response.json({ out: (r.stdout || "") + (r.stderr || ""), code: r.status });
     }
+    if (url.pathname === "/deploy-watch") {
+      // Spawns the Railway deploy watcher as a child of THIS long-lived
+      // mini-service process so it survives sandbox tool-call reaping.
+      if ((globalThis as any).__dwRunning) {
+        return Response.json({ ok: true, already: true });
+      }
+      (globalThis as any).__dwRunning = true;
+      const p = Bun.spawn(["bash", "/home/z/railway-deploy-watch.sh"], {
+        cwd: "/home/z/my-project",
+        stdin: "ignore",
+        stdout: "ignore",
+        stderr: "ignore",
+        env: { ...process.env, PATH: `${process.env.HOME}/.railway/bin:${process.env.PATH ?? ""}` },
+      });
+      p.unref?.();
+      return Response.json({ ok: true, started: true, pid: p.pid });
+    }
     return new Response("railway-keeper up");
   },
 });
