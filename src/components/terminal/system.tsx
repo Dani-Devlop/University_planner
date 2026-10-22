@@ -53,6 +53,19 @@ export default function SystemPanel() {
   const fetchHealth = React.useCallback(async () => {
     setChecking(true)
     setFailed(false)
+    // GitHub Pages static mode — no server API; report from local state instead
+    if (process.env.NEXT_PUBLIC_STATIC === "1") {
+      const s = useUni.getState()
+      setHealth({
+        ok: true,
+        service: "static-pages",
+        classes: s.classes.length,
+        exams: s.exams.length,
+        ts: Date.now(),
+      })
+      setChecking(false)
+      return
+    }
     try {
       const res = await fetch("/api/health", { cache: "no-store" })
       if (!res.ok) throw new Error("bad status")

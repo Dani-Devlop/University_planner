@@ -3,7 +3,7 @@
 // WEEKLY//UNI — weekly schedule grid (desktop 6-col RTL grid + overlap sub-columns + mobile accordion)
 
 import * as React from "react"
-import { ChevronLeft, CircleDashed, GraduationCap, Users } from "lucide-react"
+import { ChevronLeft, CircleDashed, GraduationCap, StickyNote, Users } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useUni } from "@/lib/store"
@@ -126,6 +126,79 @@ const PRESENCE = {
   hint: "هماهنگی پروژه — ساعت ثابت ندارد",
 }
 
+/* ---------------- note preview (max 4 lines + «ادامه دارد» badge) ---------------- */
+
+function NotePreview({ classId, compact }: { classId: string; compact?: boolean }) {
+  const note = (useUni((s) => s.notes[classId]) ?? "").trim()
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [extra, setExtra] = React.useState(0)
+
+  // count hidden lines: content height (scrollHeight) vs clamped box (clientHeight)
+  React.useEffect(() => {
+    if (!note) return
+    const el = ref.current
+    if (!el) return
+    const measure = () => {
+      const lh = parseFloat(getComputedStyle(el).lineHeight) || 14
+      const diff = el.scrollHeight - el.clientHeight
+      setExtra(diff > 2 ? Math.ceil(diff / lh) : 0)
+    }
+    measure()
+    let cancelled = false
+    // re-measure after webfonts load (line metrics may shift)
+    document.fonts?.ready
+      .then(() => {
+        if (!cancelled) measure()
+      })
+      .catch(() => {})
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => {
+      cancelled = true
+      ro.disconnect()
+    }
+  }, [note])
+
+  if (!note) return null
+  return (
+    <span
+      className={cn(
+        "relative block min-w-0",
+        compact ? "mt-auto" : "mt-1.5"
+      )}
+    >
+      <span
+        className={cn(
+          "flex min-w-0 items-start gap-1",
+          !compact && "rounded-md bg-white/[0.03] px-1.5 py-1"
+        )}
+      >
+        <StickyNote
+          className={cn("h-3 w-3 shrink-0 text-amber/80", compact ? "mt-px" : "mt-0.5")}
+          aria-hidden="true"
+        />
+        <span
+          ref={ref}
+          className={cn(
+            "block min-w-0 line-clamp-4 break-words whitespace-pre-line text-muted-foreground",
+            compact ? "text-[9px] leading-snug" : "text-[10px] leading-relaxed"
+          )}
+        >
+          {note}
+        </span>
+      </span>
+      {extra > 0 && (
+        <span
+          className="absolute bottom-0 end-0 rounded-md bg-black/55 px-1 py-0.5 font-fa text-[8px] font-bold leading-none text-amber/90 backdrop-blur-sm"
+          title="یادداشت کامل در جزئیات کلاس"
+        >
+          +{toPersianDigits(extra)} خط بیشتر…
+        </span>
+      )}
+    </span>
+  )
+}
+
 /* ---------------- single class block (desktop) ---------------- */
 
 function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
@@ -172,6 +245,8 @@ function ClassBlock({ item, narrow }: { item: Timed; narrow: boolean }) {
       <span className="truncate font-fa text-[9px] leading-tight text-muted-foreground">
         {c.location}
       </span>
+      {/* class note — clamped to 4 lines, «+N خط بیشتر» when longer */}
+      <NotePreview classId={c.id} compact />
     </button>
   )
 }
@@ -211,6 +286,8 @@ function MobileClassCard({ c }: { c: UniClass }) {
           {c.location}
         </span>
       </div>
+      {/* class note — clamped to 4 lines, «+N خط بیشتر» when longer */}
+      <NotePreview classId={c.id} />
     </button>
   )
 }
@@ -239,6 +316,8 @@ function UnscheduledCard({ c }: { c: UniClass }) {
         <GraduationCap className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
         <span className="truncate">استاد: {c.professor}</span>
       </div>
+      {/* class note — clamped to 4 lines, «+N خط بیشتر» when longer */}
+      <NotePreview classId={c.id} />
       <div className="mt-2 flex w-full items-center justify-between gap-2">
         <span className="truncate font-mono text-[10px] text-muted-foreground/70">
           {c.name} · {c.code}

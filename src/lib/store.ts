@@ -1,6 +1,52 @@
 // WEEKLY//UNI — global client state (zustand)
 import { create } from "zustand";
 import type { UniClass, UniExam, NotesMap } from "./types";
+import seedData from "../../data/db.json";
+
+/**
+ * GitHub Pages static mode (NEXT_PUBLIC_STATIC=1):
+ * no server/API available — the same UI persists everything in localStorage,
+ * seeded on first visit from the bundled data/db.json snapshot.
+ */
+const STATIC = process.env.NEXT_PUBLIC_STATIC === "1";
+const LS_KEY = "wu.static.db.v1";
+
+interface Snapshot {
+  classes: UniClass[];
+  exams: UniExam[];
+  notes: NotesMap;
+}
+
+const SEED: Snapshot = {
+  classes: (seedData.classes ?? []) as UniClass[],
+  exams: (seedData.exams ?? []) as UniExam[],
+  notes: (seedData.notes ?? {}) as NotesMap,
+};
+
+function lsRead(): Snapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw) as Partial<Snapshot>;
+    return {
+      classes: Array.isArray(j.classes) ? j.classes : [],
+      exams: Array.isArray(j.exams) ? j.exams : [],
+      notes: j.notes && typeof j.notes === "object" ? (j.notes as NotesMap) : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function lsWrite(s: Snapshot): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LS_KEY, JSON.stringify(s));
+  } catch {
+    /* quota/private mode — state stays in memory */
+  }
+}
 
 interface UniState {
   loaded: boolean;
@@ -33,6 +79,13 @@ export const useUni = create<UniState>((set, get) => ({
   systemOpen: false,
 
   load: async () => {
+    if (STATIC) {
+      const snap = lsRead();
+      const data = snap ?? SEED;
+      if (!snap) lsWrite(SEED);
+      set({ loaded: true, syncing: false, classes: data.classes, exams: data.exams, notes: data.notes });
+      return;
+    }
     set({ syncing: true });
     try {
       const res = await fetch("/api/schedule", { cache: "no-store" });
@@ -51,6 +104,10 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateClass: async (id, patch) => {
     set({ classes: get().classes.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
+    if (STATIC) {
+      lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
+      return;
+    }
     try {
       await fetch(`/api/classes/${id}`, {
         method: "PUT",
@@ -61,6 +118,15 @@ export const useUni = create<UniState>((set, get) => ({
   },
 
   addExam: async (ex) => {
+    if (STATIC) {
+      const saved: UniExam = {
+        ...ex,
+        id: `ex${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      };
+      set({ exams: [...get().exams, saved] });
+      lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
+      return;
+    }
     try {
       const res = await fetch("/api/exams", {
         method: "POST",
@@ -76,6 +142,10 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateExam: async (id, patch) => {
     set({ exams: get().exams.map((e) => (e.id === id ? { ...e, ...patch } : e)) });
+    if (STATIC) {
+      lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
+      return;
+    }
     try {
       await fetch(`/api/exams/${id}`, {
         method: "PUT",
@@ -87,6 +157,10 @@ export const useUni = create<UniState>((set, get) => ({
 
   deleteExam: async (id) => {
     set({ exams: get().exams.filter((e) => e.id !== id) });
+    if (STATIC) {
+      lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
+      return;
+    }
     try {
       await fetch(`/api/exams/${id}`, { method: "DELETE" });
     } catch { /* noop */ }
@@ -94,6 +168,10 @@ export const useUni = create<UniState>((set, get) => ({
 
   setNote: async (classId, text) => {
     set({ notes: { ...get().notes, [classId]: text } });
+    if (STATIC) {
+      lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
+      return;
+    }
     try {
       await fetch("/api/notes", {
         method: "PUT",

@@ -19,12 +19,15 @@ const vazirmatn = Vazirmatn({
   subsets: ["arabic"],
 });
 
+/** GitHub Pages project site serves under /<repo>/ — prefix public asset URLs there */
+const BP = process.env.NEXT_PUBLIC_STATIC === "1" ? "/University_planner" : "";
+
 export const metadata: Metadata = {
   title: "WEEKLY//UNI — Terminal Schedule",
   description:
     "University schedule, markdown notes and exam tracker — deployed on a terminal aesthetic.",
   applicationName: "WEEKLY//UNI",
-  manifest: "/manifest.webmanifest",
+  manifest: `${BP}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     title: "WEEKLY//UNI",
@@ -32,10 +35,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: `${BP}/icons/icon-192.png`, sizes: "192x192", type: "image/png" },
+      { url: `${BP}/icons/icon-512.png`, sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: `${BP}/icons/icon-192.png`, sizes: "192x192", type: "image/png" }],
   },
 };
 
