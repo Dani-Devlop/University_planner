@@ -167,3 +167,22 @@ Work Log:
 Stage Summary:
 - یادداشت چندخطی حالا هم در کارت (تا ۳ خط با شکست واقعی خط) و هم در دیالوگ ویرایش درست نمایش داده می‌شود و در دیتابیس هم با \n ذخیره می‌ماند
 - دیپلوی نکردم — طبق روال، منتظر تایید preview کاربر
+
+---
+Task ID: 10
+Agent: main (Z.ai Code)
+Task: دیپلوی نسخه نهایی (ریلوی + گیت‌هاب) + پیش‌نمایش یادداشت روی کارت کلاس‌ها + ورک‌فلو GitHub Pages
+
+Work Log:
+- فیچر NotePreview در schedule-grid.tsx: روی هر ۳ نوع کارت (ClassBlock دسکتاپ / MobileClassCard آکاردئون / UnscheduledCard پروژه) — line-clamp-4 + whitespace-pre-line + اندازه‌گیری خطوط مخفی با scrollHeight/clientHeight (useEffect + ResizeObserver + document.fonts.ready) → نشانگر «+N خط بیشتر…» (اعداد فارسی) وقتی یادداشت از ۴ خط بلندتره
+- حالت استاتیک GitHub Pages: store.ts با NEXT_PUBLIC_STATIC=1 از localStorage استفاده می‌کند (seed از data/db.json باندل‌شده)، layout.tsx مسیر manifest/icons با basePath، system.tsx سلامت استاتیک، next.config.ts شاخه export با distDir=.next-static و basePath=/University_planner
+- .github/workflows/pages.yml: checkout→bun install→rm src/app/api→bunx next build (STATIC=1)→configure-pages(enablement)→upload .next-static→deploy-pages
+- وریفای لوکال: بیلد استاتیک موفق (توجه: Next 16 خروجی export را داخل distDir می‌ریزد نه out/ — مسیر workflow اصلاح شد)، سرو با python http.server روی 4173: هر ۶ کلاس + امتحان seed رندر شد، یادداشت ۶ خطی → ۴ خط + «+۲ خط بیشتر…» دقیق (ارتفاع ۴۹.۵px = ۴×line-height)، ماندگاری بعد از reload ✓، کنسول صفر خطا؛ dev mode عادی هم سالم
+- گیت‌هاب: تاریخچه کامل + فیچرها پوش شد (e339fe4)؛ .env قبلاً untrack شد؛ merge با Initial commit کاربر
+- GitHub Actions: بیلد استاتیک روی CI موفق ✅ ولی Setup Pages فِیل: API گیت‌هاب ۴۲۲ «Your current plan does not support GitHub Pages for this repository» → Pages برای ریپوی پرایوت نیازمند پلن Pro است
+- ریلوی: railway up سه بار «Deploys have been paused temporarily» داد؛ status.railway.com → قطعی Major Outage پلتفرمی: بیلد Pro/Enterprise فعال، Hobby/Free/Trial موقتاً pause. حلقه ریترای خودکار هر ۵ دقیقه (۱۲ بار) در بک‌گراند فعال شد
+
+Stage Summary:
+- فیچر پیش‌نمایش یادداشت + زیرساخت Pages کامل، تست‌شده و روی گیت‌هاب پوش شده (dab0789..e339fe4)
+- بلاکرها: (۱) Pages نیازمند تصمیم کاربر: ریپو پابلیک شود یا پلن Pro؛ (۲) دیپلوی ریلوی منتظر رفع قطعی پلتفرم — دیتای لایو سالم (۶ کلاس، ۱ امتحان)
+- بعد از رفع قطعی: دیپلوی خودکار → merge امتحان پیش‌نمایش به لایو → وریفای لایو
