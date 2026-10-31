@@ -131,3 +131,24 @@ Work Log:
 Stage Summary:
 - ALL local development complete & browser-verified; ONLY the deployment chain remains
 - Next session needs zero prior context: install CLI → auth (project token preferred, browserless+setsid fallback) → railway link (project 401a7516-2762-4453-b48b-de723e7c9c35 / service 25d84cb9-7d8c-45b3-987c-5f683d9d21de / env 22d3d0b5-0442-4334-8afe-93749a7ba322) → railway up -d → PUT /api/classes/3 {"nameFa":"ساختمان‌داده‌ها"} → agent-browser live verify (استاد rows desktop+mobile, 3 sound tests, RTL, 0 console errors) → append worklog entry
+
+---
+Task ID: github-publish
+Agent: Z.ai Code (main)
+Task: Publish project to github.com/Dani-Devlop/University_planner (main)
+
+Work Log:
+- Installed gh CLI v2.103.3 (binary tarball; unauth API 403 → token-authed release lookup)
+- Validated GH_TOKEN → account Dani-Devlop (id 214831379); set repo-local git identity Dani-Devlop <214831379+Dani-Devlop@users.noreply.github.com>
+- Repo hygiene: untracked sandbox junk (.zscripts/, examples/, tests/, upload/, download/, db/custom.db, mini-services/) + .gitignore rules; added Dockerfile-critical files
+- Added README.md (EN, docs/preview.png live screenshot via agent-browser, features, live demo, setup, API table, license, author), LICENSE (MIT, 2026 Dani-Devlop), .github/workflows/deploy.yml (bun install --frozen-lockfile + next build + standalone artifact check — GitHub Pages NOT viable: server-rendered Next.js app with API routes + JSON DB; live demo stays on Railway)
+- Committed; git filter-branch rewrote ALL 12 commits (author AND committer → Dani-Devlop); purged refs/original + reflog + gc; verified `git log --format='%an | %cn' main | sort -u` → only Dani-Devlop
+- Repo existed PRIVATE → flipped to public via gh repo edit --accept-visibility-change-consequences; force-pushed main (replaced previous foreign history e339fe4)
+- Set description + homepage (weeklyuni.up.railway.app) + 12 topics
+- Workflow "Build & Verify" run 41245621984 → SUCCESS; `gh api .../commits --jq '.[0].author.login'` → Dani-Devlop
+- Security cleanup: remote URL stripped of token, .git/config verified clean, /tmp/.ghtoken removed, GH_TOKEN unset. NOTE: token was pasted in chat plaintext — user advised to rotate it
+
+Stage Summary:
+- LIVE REPO: https://github.com/Dani-Devlop/University_planner (public, main, 100% Dani-Devlop authorship)
+- CI: Build & Verify green | Live demo unchanged: https://weeklyuni.up.railway.app
+- Deviation (honest): GitHub Pages deploy intentionally replaced with build-verify CI (Next.js server app cannot run on static Pages)
