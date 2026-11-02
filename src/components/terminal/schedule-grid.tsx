@@ -132,16 +132,20 @@ function NotePreview({ classId, compact }: { classId: string; compact?: boolean 
   const note = (useUni((s) => s.notes[classId]) ?? "").trim()
   const ref = React.useRef<HTMLSpanElement>(null)
   const [extra, setExtra] = React.useState(0)
+  // logical lines = what the user actually wrote (Enter-separated)
+  const totalLines = React.useMemo(() => note.split("\n").length, [note])
 
-  // count hidden lines: content height (scrollHeight) vs clamped box (clientHeight)
+  // show the badge only when the clamp visually truncates the text (scrollHeight vs
+  // clientHeight), but count hidden lines logically so narrow wrapped columns
+  // never inflate the number (e.g. 6 written lines must not read «+۱۱»)
   React.useEffect(() => {
     if (!note) return
     const el = ref.current
     if (!el) return
     const measure = () => {
-      const lh = parseFloat(getComputedStyle(el).lineHeight) || 14
       const diff = el.scrollHeight - el.clientHeight
-      setExtra(diff > 2 ? Math.ceil(diff / lh) : 0)
+      const truncated = diff > 2
+      setExtra(truncated ? Math.max(1, totalLines - 4) : 0)
     }
     measure()
     let cancelled = false
@@ -157,7 +161,7 @@ function NotePreview({ classId, compact }: { classId: string; compact?: boolean 
       cancelled = true
       ro.disconnect()
     }
-  }, [note])
+  }, [note, totalLines])
 
   if (!note) return null
   return (
