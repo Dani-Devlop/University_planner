@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Terminal, Layers, Sun, CalendarRange, GraduationCap, Command,
 } from "lucide-react";
@@ -45,10 +46,34 @@ function StatCard({
 
 export default function Home() {
   const { loaded, classes, exams, load } = useUni();
+  const lastWriteFailed = useUni((s) => s.lastWriteFailed);
+  const { toast } = useToast();
+  const prevFail = useRef(false);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Resync whenever the mini app becomes visible again (e.g. coming back from the bot chat)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") void load(true);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [load]);
+
+  // Honest failure signal: a mutation could not reach the cloud DB
+  useEffect(() => {
+    if (lastWriteFailed && !prevFail.current) {
+      toast({
+        variant: "destructive",
+        title: "ذخیره در سرور ناموفق بود",
+        description: "مینی‌اپ را از داخل تلگرام باز کن و دوباره تلاش کن — تغییرات فعلاً فقط روی همین دستگاه است.",
+      });
+    }
+    prevFail.current = lastWriteFailed;
+  }, [lastWriteFailed, toast]);
 
   const todayName = loaded ? tehranDayName() : "";
   const todayCount = loaded

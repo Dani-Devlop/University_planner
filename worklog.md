@@ -301,3 +301,29 @@ Stage Summary:
 - بات تلگرام ظاهر جدید ایموجی‌دار + HTML بولد گرفت؛ فرمت «تاریخ - نام روز» دست‌نخورده
 - منوی دستورها (☰) و پروفایل بات هم فارسی/ایموجی‌دار شد
 - مینی‌اپ/PWA هیچ تغییری نکرد؛ سینک دیتا وب‌اپ↔بات از قبل از طریق DB مشترک برقرار است
+
+---
+Task ID: 14
+Agent: main (Z.ai Code)
+Task: فیکس گم‌شدن دیتا (امتحانِ اضافه‌شده در مینی‌اپ به دیتابیس نمی‌رسید) + کشف مرگ اپ Railway
+
+Work Log:
+- کاربر: «توی وب‌اپ امتحان اضافه کردم، بات نشون نمی‌ده» — سندباکس ریست شده بود → کلون مجدد از گیت‌هاب (1b77a3f) + نصب deps + بازسازی .tgcloud/credentials
+- کشف ۱: weeklyuni.up.railway.app کاملاً حذف شده (Application not found روی همه‌ی مسیرها) — اپ Railway دیگر وجود ندارد؛ دیتابیس tgcloud تنها منبع دیتاست
+- تشخیص: tgcloud DB فقط ۱ امتحان seed (تاریخ گذشته) داشت → add کاربر هیچ‌جا ذخیره نشده بود
+  - تست endpoint با tgcloud run addExam --ctx initData فیک → ذخیره موفق (۲۰ms) → بک‌اند کاملاً سالم؛ مشکل سمت کلاینت است
+  - علت: store.ts فقط از پل Telegram.WebApp.Serverless استفاده می‌کرد؛ در کلاینت کاربر پل یا غایب است یا خطا می‌دهد → فیل‌بک ساکت به seed باندل‌شده (۶ کلاس + ۱ امتحان قدیمی = همان چیزی که کاربر می‌دید) و addExam فقط optimistic
+  - پروتکل رسمی از telegram-web-app.js استخراج شد: POST /api/<name> با Authorization: TMA base64(initData)
+- فیکس store.ts:
+  - callEndpoint جدید: پل رسمی → روی خطای sync یا callback، فیل‌بک خودکار به httpCall با همان پروتکل رسمی (کلاینت‌های قدیمی‌تر که initData دارند ولی Serverless ندارند هم کار می‌کند)
+  - load(soft): برنچ TGCLOUD_BUILD؛ خطا → offline=true + فیل‌بک lsRead/SEED؛ soft فقط وضعیت فعلی را نگه می‌دارد
+  - همه‌ی writeها: catch → lastWriteFailed=true (optimistic می‌ماند ولی صادقانه فلگ می‌شود)، موفق → فلگ پاک
+- فیکس page.tsx: توست destructive «ذخیره در سرور ناموفق بود» روی لبهٔ صعودی lastWriteFailed + resync خودکار load(true) روی visibilitychange
+- تست: eslint صفری؛ build:tgcloud موفق؛ push → ۹ فایل استاتیک آپلود؛ چانک جدید (2bs7p_u2xrvdv.js شامل رشتهٔ TMA) روی لایو HTTP 200
+- تست HTTP خارجی: POST /api/getSchedule با هدر TMA ساختگی → {"ok":false,"description":"Unauthorized","error_code":401} — روتینگ + شکل envelope دقیقاً مطابق پارسر httpCall ✓
+- امتحان تستی «تست اتصال» که برای تشخیص اضافه شده بود با deleteExam حذف شد → DB تمیز (۶ کلاس، ۱ امتحان seed گذشته)
+
+Stage Summary:
+- ریشهٔ باگ: پل Serverless در کلاینت کاربر کار نمی‌کرد و اپ ساکت فیل‌بک می‌شد → اکنون دو مسیر حمل‌ونقل + خطای صادقانه
+- کاربر باید امتحانش را دوباره در مینی‌اپ اضافه کند — این‌بار واقعاً ذخیره می‌شود و بات هم نشان می‌دهد
+- Railway حذف شده؛ داده‌های قبلی Railway (نوت‌ها/امتحان‌های اکتبر) قابل بازیابی نیستند مگر بکاپ خارجی

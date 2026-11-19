@@ -16,6 +16,9 @@ import seedData from "../../data/db.json";
 const STATIC = process.env.NEXT_PUBLIC_STATIC === "1";
 const LS_KEY = "wu.static.db.v1";
 
+/** Telegram Serverless mini-app build: data lives in the bot's cloud DB (tgcloud endpoints). */
+const TGCLOUD_BUILD = process.env.NEXT_PUBLIC_TGCLOUD === "1";
+
 interface ServerlessBridge {
   call: (name: string, input: object, cb: (err: unknown, res: unknown) => void) => void;
 }
@@ -30,21 +33,81 @@ function serverless(): ServerlessBridge | null {
   return bridge && typeof bridge.call === "function" ? bridge : null;
 }
 
-/** Call a tgcloud endpoint; resolves with its result, rejects on error. */
+/** Raw Telegram initData (present inside Telegram even on clients without the Serverless bridge). */
+function tgInitData(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Direct HTTP fallback — replicates the official telegram-web-app.js wire
+ * protocol exactly: POST /api/<name> with `Authorization: TMA base64(initData)`.
+ * Works on Telegram clients that expose WebApp.initData but ship a broken/
+ * missing Serverless bridge. initData is URL-encoded ASCII, so btoa is safe.
+ */
+async function httpCall<T>(name: string, input: Record<string, unknown>): Promise<T> {
+  const initData = tgInitData();
+  if (!initData) throw new Error("no-init-data: open the mini app from inside Telegram");
+  const res = await fetch(`/api/${name}`, {
+    method: "POST",
+    headers: {
+      Authorization: `TMA ${window.btoa(initData)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  let data: { ok?: boolean; result?: T; description?: string } | null = null;
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    /* non-JSON body */
+  }
+  if (!data || typeof data.ok !== "boolean") {
+    throw new Error(`unexpected response from ${name} (HTTP ${res.status})`);
+  }
+  if (!data.ok) throw new Error(data.description || `endpoint ${name} failed (HTTP ${res.status})`);
+  return data.result as T;
+}
+
+/**
+ * Call a tgcloud endpoint; resolves with its result, rejects on error.
+ * Transport: official Serverless bridge first — on sync throw OR callback
+ * error falls back to the direct HTTP protocol above (same server, same auth).
+ */
 function callEndpoint<T>(name: string, input?: Record<string, unknown>): Promise<T> {
+  const viaHttp = () => httpCall<T>(name, input ?? {});
+  const bridge = serverless();
+  if (!bridge) return viaHttp();
   return new Promise<T>((resolve, reject) => {
-    const bridge = serverless();
-    if (!bridge) {
-      reject(new Error("no-serverless"));
-      return;
-    }
+    let settled = false;
     try {
       bridge.call(name, input ?? {}, (err, res) => {
-        if (err) reject(err instanceof Error ? err : new Error(String((err as { message?: string })?.message ?? "endpoint-error")));
-        else resolve(res as T);
+        if (settled) return;
+        if (!err) {
+          settled = true;
+          resolve(res as T);
+          return;
+        }
+        viaHttp()
+          .then((r) => {
+            if (!settled) {
+              settled = true;
+              resolve(r);
+            }
+          })
+          .catch(() => {
+            if (!settled) {
+              settled = true;
+              reject(err instanceof Error ? err : new Error(String((err as { message?: string })?.message ?? "endpoint-error")));
+            }
+          });
       });
-    } catch (e) {
-      reject(e instanceof Error ? e : new Error(String(e)));
+    } catch {
+      viaHttp().then(resolve, reject);
     }
   });
 }
@@ -89,13 +152,18 @@ function lsWrite(s: Snapshot): void {
 interface UniState {
   loaded: boolean;
   syncing: boolean;
+  /** true when the last cloud read/write failed (tgcloud mini-app build only) */
+  offline: boolean;
+  /** true when the last mutation failed to reach the cloud (optimistic state kept) */
+  lastWriteFailed: boolean;
   classes: UniClass[];
   exams: UniExam[];
   notes: NotesMap;
   activeClassId: string | null;
   paletteOpen: boolean;
   systemOpen: boolean;
-  load: () => Promise<void>;
+  /** soft=true: on failure keep what is already on screen (used on resync) */
+  load: (soft?: boolean) => Promise<void>;
   updateClass: (id: string, patch: Partial<UniClass>) => Promise<void>;
   addExam: (ex: Omit<UniExam, "id">) => Promise<void>;
   updateExam: (id: string, patch: Partial<UniExam>) => Promise<void>;
@@ -109,6 +177,8 @@ interface UniState {
 export const useUni = create<UniState>((set, get) => ({
   loaded: false,
   syncing: false,
+  offline: false,
+  lastWriteFailed: false,
   classes: [],
   exams: [],
   notes: {},
@@ -116,17 +186,28 @@ export const useUni = create<UniState>((set, get) => ({
   paletteOpen: false,
   systemOpen: false,
 
-  load: async () => {
-    if (serverless()) {
+  load: async (soft = false) => {
+    if (TGCLOUD_BUILD) {
       set({ syncing: true });
       try {
         const data = await callEndpoint<{ classes: UniClass[]; exams: UniExam[]; notes: NotesMap }>("getSchedule");
-        set({ loaded: true, classes: data.classes ?? [], exams: data.exams ?? [], notes: data.notes ?? {} });
+        set({
+          loaded: true,
+          offline: false,
+          classes: data.classes ?? [],
+          exams: data.exams ?? [],
+          notes: data.notes ?? {},
+        });
         return;
       } catch {
-        // endpoint unreachable — fall through to the bundled seed so the UI still works
+        // endpoint unreachable — soft resync keeps what is on screen, initial
+        // load falls back to the local snapshot / bundled seed
+        if (soft) {
+          set({ offline: true });
+          return;
+        }
         const snap = lsRead() ?? SEED;
-        set({ loaded: true, classes: snap.classes, exams: snap.exams, notes: snap.notes });
+        set({ loaded: true, offline: true, classes: snap.classes, exams: snap.exams, notes: snap.notes });
         return;
       } finally {
         set({ syncing: false });
@@ -157,10 +238,14 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateClass: async (id, patch) => {
     set({ classes: get().classes.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
-    if (serverless()) {
+    if (TGCLOUD_BUILD) {
       try {
         await callEndpoint("updateClass", { id, patch });
-      } catch { /* offline — optimistic state kept */ }
+        set({ lastWriteFailed: false, offline: false });
+      } catch {
+        // optimistic state kept — UI flags the failure via lastWriteFailed
+        set({ lastWriteFailed: true, offline: true });
+      }
       return;
     }
     if (STATIC) {
@@ -177,17 +262,18 @@ export const useUni = create<UniState>((set, get) => ({
   },
 
   addExam: async (ex) => {
-    if (serverless()) {
+    if (TGCLOUD_BUILD) {
       try {
         const saved = await callEndpoint<UniExam>("addExam", { ...ex });
-        set({ exams: [...get().exams, saved] });
+        set({ exams: [...get().exams, saved], lastWriteFailed: false, offline: false });
       } catch {
-        // keep optimistic local copy so the UI still reflects the attempt
+        // keep optimistic local copy so the UI still reflects the attempt —
+        // but flag it honestly so the UI can warn about the failed save
         const saved: UniExam = {
           ...ex,
           id: `ex${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
         };
-        set({ exams: [...get().exams, saved] });
+        set({ exams: [...get().exams, saved], lastWriteFailed: true, offline: true });
       }
       return;
     }
@@ -215,10 +301,13 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateExam: async (id, patch) => {
     set({ exams: get().exams.map((e) => (e.id === id ? { ...e, ...patch } : e)) });
-    if (serverless()) {
+    if (TGCLOUD_BUILD) {
       try {
         await callEndpoint("updateExam", { id, patch });
-      } catch { /* offline — optimistic state kept */ }
+        set({ lastWriteFailed: false, offline: false });
+      } catch {
+        set({ lastWriteFailed: true, offline: true });
+      }
       return;
     }
     if (STATIC) {
@@ -236,10 +325,13 @@ export const useUni = create<UniState>((set, get) => ({
 
   deleteExam: async (id) => {
     set({ exams: get().exams.filter((e) => e.id !== id) });
-    if (serverless()) {
+    if (TGCLOUD_BUILD) {
       try {
         await callEndpoint("deleteExam", { id });
-      } catch { /* offline — optimistic state kept */ }
+        set({ lastWriteFailed: false, offline: false });
+      } catch {
+        set({ lastWriteFailed: true, offline: true });
+      }
       return;
     }
     if (STATIC) {
@@ -253,10 +345,13 @@ export const useUni = create<UniState>((set, get) => ({
 
   setNote: async (classId, text) => {
     set({ notes: { ...get().notes, [classId]: text } });
-    if (serverless()) {
+    if (TGCLOUD_BUILD) {
       try {
         await callEndpoint("setNote", { classId, text });
-      } catch { /* offline — optimistic state kept */ }
+        set({ lastWriteFailed: false, offline: false });
+      } catch {
+        set({ lastWriteFailed: true, offline: true });
+      }
       return;
     }
     if (STATIC) {
