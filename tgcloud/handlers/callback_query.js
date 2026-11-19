@@ -1,14 +1,15 @@
 // WEEKLY//UNI — handlers/callback_query.js — inline buttons for the days list
 
 import { api } from 'sdk';
-import { OWNER_ID, allClasses, allExams } from '../lib/uni.js';
+import { OWNER_ID, APP_URL, allClasses, allExams } from '../lib/uni.js';
 import { daysMessage, examsMessage, daysKeyboard } from '../lib/bot-text.js';
 
 const MAX_WEEKS = 16;
+const HTML = { parse_mode: 'HTML' };
 
 export default async function (cq) {
   if (cq.from?.id !== OWNER_ID) {
-    await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'این ربات شخصی است', show_alert: true });
+    await api.answerCallbackQuery({ callback_query_id: cq.id, text: '🔒 این ربات شخصیه 🤖', show_alert: true });
     return;
   }
 
@@ -34,6 +35,7 @@ export default async function (cq) {
       chat_id: chatId,
       message_id: messageId,
       text: daysMessage(classes, weeksAhead, 4),
+      ...HTML,
       reply_markup: daysKeyboard(weeksAhead),
     });
     return;
@@ -46,7 +48,8 @@ export default async function (cq) {
       chat_id: chatId,
       message_id: messageId,
       text: examsMessage(exams, classes),
-      reply_markup: { inline_keyboard: [[{ text: '🎓 مینی‌اپ', url: 'https://app9229459492.tgcloud.ai/' }]] },
+      ...HTML,
+      reply_markup: { inline_keyboard: [[{ text: '🎓 مینی‌اپ', url: APP_URL }]] },
     });
     return;
   }

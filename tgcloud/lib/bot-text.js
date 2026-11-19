@@ -1,7 +1,10 @@
-// WEEKLY//UNI — bot message formatting (Persian, terminal-style)
+// WEEKLY//UNI — bot message formatting (Persian, emoji-rich, Telegram HTML)
 //
 // The core request: «روزهایی که کلاس دارم تو ربات ارسال بشه به این شکل:
 // تاریخ - نام روز» → e.g. «۱۴۰۵/۰۹/۰۲ - دوشنبه»
+//
+// All messages are sent with parse_mode: 'HTML' — every dynamic value MUST
+// go through esc(). Pure JS (no sdk import) so it stays unit-testable.
 
 import {
   dayNameFa,
@@ -16,6 +19,47 @@ import {
   daysUntilISO,
   DOW_NAMES,
 } from './jalali.js';
+
+// ---------------------------------------------------------------------------
+// Shared pieces
+// ---------------------------------------------------------------------------
+
+/** Mini App URL — kept here so this module stays sdk-free and testable */
+export const APP_URL_TEXT = 'https://app9229459492.tgcloud.ai/';
+
+/** Escape dynamic user data for Telegram HTML parse_mode */
+export function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** One color dot per weekday — a stable visual code across all messages */
+const DOW_EMOJI = {
+  Saturday: '🟣',
+  Sunday: '🔵',
+  Monday: '🟢',
+  Tuesday: '🟡',
+  Wednesday: '🟠',
+  Thursday: '🔴',
+  Friday: '⚫',
+};
+
+const DIV = '━━━━━━━━━━━━━━━━━━';
+
+const KEYCAP = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+function numEmoji(i) {
+  return i < 10 ? KEYCAP[i] : `${toPersianDigits(i + 1)}.`;
+}
+
+/** Urgency emoji for the exam countdown */
+function whenEmoji(d) {
+  if (d <= 2) return '🚨';
+  if (d <= 7) return '⚠️';
+  if (d <= 14) return '⏳';
+  return '🌱';
+}
 
 // ---------------------------------------------------------------------------
 // Class-day listing
@@ -50,30 +94,30 @@ export function daysMessage(classes, weeksAhead = 0, weeksCount = 4) {
 
   const title =
     weeksAhead === 0
-      ? `📅 روزهای کلاس — ${toPersianDigits(weeksCount)} هفتهٔ پیش‌رو`
-      : `📅 روزهای کلاس — از ${isoToJalaliLong(fromISO)}`;
+      ? `📅 <b>روزهای کلاس</b> — ${toPersianDigits(weeksCount)} هفتهٔ پیش‌رو 🎒`
+      : `📅 <b>روزهای کلاس</b> — از ${isoToJalaliLong(fromISO)} 🎒`;
 
   if (!days.length) {
-    return `${title}\n\nدر این بازه هیچ کلاسی ثبت نشده است.`;
+    return `${title}\n\n😴 در این بازه هیچ کلاسی ثبت نشده — تعطیلات! 🏖`;
   }
 
   const parts = [title, ''];
   for (const d of days) {
-    let line = dayLine(d.iso);
-    if (d.holiday) line += ` ⛔ ${d.holiday}`;
+    let line = `${DOW_EMOJI[d.dayNameEn] || '▫️'} <b>${isoToJalaliSlash(d.iso)} - ${dayNameFa(d.dayNameEn)}</b>`;
+    if (d.holiday) line += ' ⛔';
     parts.push(line);
     if (d.holiday) {
-      parts.push('  ⟂ تعطیل رسمی — کلاس‌ها برقرار نیست');
+      parts.push(`  🚫 ${esc(d.holiday)} — تعطیل رسمی، کلاس‌ها برقرار نیست`);
     } else {
-      for (const c of d.classes) {
+      d.classes.forEach((c, i) => {
         const t = startTimeFa(c.time);
-        const loc = c.location && c.location !== 'N/A' ? ` — ${c.location}` : '';
-        parts.push(`  • ${c.nameFa}${t ? ` — ساعت ${t}` : ''}${loc}`);
-      }
+        const loc = c.location && c.location !== 'N/A' ? ` — 📍 ${esc(c.location)}` : '';
+        parts.push(`  ${numEmoji(i)} ${esc(c.nameFa)}${t ? ` — 🕐 ${t}` : ''}${loc}`);
+      });
     }
     parts.push('');
   }
-  parts.push('🎓 مینی‌اپ کامل: /start');
+  parts.push('🎓 <i>برنامهٔ کامل در مینی‌اپ 👇</i>');
   return parts.join('\n');
 }
 
@@ -85,16 +129,23 @@ export function dayClassesMessage(classes, iso, label) {
   const dayNameEn = DOW_NAMES[isoDow(iso)];
   const list = classes.filter((c) => c.day === dayNameEn);
   const holiday = holidayForISO(iso);
-  const head = `📆 ${label} — ${isoToJalaliLong(iso)}\n${dayLine(iso)}`;
-  if (holiday) return `${head}\n\n⛔ ${holiday} — تعطیل رسمی، کلاس‌ها برقرار نیست.`;
-  if (!list.length) return `${head}\n\nخبر خوب، ${dayNameFa(dayNameEn)} کلاس نداری 🌴`;
-  const rows = list.map((c) => {
+  const face = label === 'فردا' ? '🌙' : '☀️';
+  const head = `${face} <b>${esc(label)}</b> — ${isoToJalaliLong(iso)}\n${
+    DOW_EMOJI[dayNameEn] || '▫️'
+  } <b>${isoToJalaliSlash(iso)} - ${dayNameFa(dayNameEn)}</b>`;
+  if (holiday) {
+    return `${head}\n\n🚫 <b>${esc(holiday)}</b> — تعطیل رسمی، کلاس‌ها برقرار نیست 🏖`;
+  }
+  if (!list.length) {
+    return `${head}\n\n🎉 خبر خوب! ${dayNameFa(dayNameEn)} کلاس نداری — حالشو ببر 🌴`;
+  }
+  const rows = list.map((c, i) => {
     const t = startTimeFa(c.time);
     const range = c.time && c.time !== 'N/A' ? ` (${toPersianDigits(c.time)})` : '';
-    const loc = c.location && c.location !== 'N/A' ? `\n    📍 ${c.location}` : '';
-    return `  • ${c.nameFa}\n    🕐${t ? ` ساعت ${t}${range}` : ' بدون زمان‌بندی'}${loc}\n    👨‍🏫 ${c.professor}`;
+    const loc = c.location && c.location !== 'N/A' ? `\n     📍 ${esc(c.location)}` : '';
+    return `${numEmoji(i)} <b>${esc(c.nameFa)}</b>\n     🕐 ${t ? `ساعت ${t}${range}` : 'بدون زمان‌بندی'}${loc}\n     👨‍🏫 ${esc(c.professor)}`;
   });
-  return `${head}\n\n${rows.join('\n')}`;
+  return `${head}\n\n${rows.join('\n\n')}`;
 }
 
 export function todayMessage(classes) {
@@ -116,36 +167,40 @@ export function examsMessage(exams, classes) {
     return !isNaN(d) && d >= 0;
   });
   if (!upcoming.length) {
-    return '📝 امتحان یا ارائه‌ای در تقویم ثبت نشده — از مینی‌اپ اضافه کن.';
+    return '📝 <b>امتحان‌ها و ارائه‌ها</b>\n\n😌 فعلاً هیچ امتحان یا ارائه‌ای در تقویم نیست — از مینی‌اپ اضافه‌ش کن ✨';
   }
   const rows = upcoming.slice(0, 10).map((e) => {
     const d = daysUntilISO(e.date);
     const cls = classes.find((c) => c.id === e.classId);
     const kind = e.kind === 'presentation' ? '🎤 ارائه' : '📝 امتحان';
-    const when = d === 0 ? 'امروز!' : `${toPersianDigits(d)} روز مانده`;
-    const t = e.time ? ` — ساعت ${toPersianDigits(e.time)}` : '';
-    const loc = e.location ? `\n    📍 ${e.location}` : '';
-    return `${kind} ${cls ? `«${cls.nameFa}»` : ''}\n    ${e.title}\n    🗓 ${isoToJalaliLong(e.date)}${t}${loc}\n    ⏳ ${when}`;
+    const when = d === 0 ? '🔥 <b>همین امروز!</b>' : `${whenEmoji(d)} <b>${toPersianDigits(d)} روز مانده</b>`;
+    const t = e.time ? ` — 🕐 ${toPersianDigits(e.time)}` : '';
+    const loc = e.location ? `\n     📍 ${esc(e.location)}` : '';
+    return `${kind} ${cls ? `📚 «${esc(cls.nameFa)}»` : ''}\n     📄 ${esc(e.title)}\n     🗓 ${isoToJalaliLong(e.date)}${t}${loc}\n     ${when}`;
   });
-  return `📝 امتحان‌ها و ارائه‌های پیش‌رو\n\n${rows.join('\n\n')}`;
+  return `📝 <b>امتحان‌ها و ارائه‌های پیش‌رو</b>\n\n${rows.join('\n\n')}`;
 }
 
 // ---------------------------------------------------------------------------
 // Welcome / help
 // ---------------------------------------------------------------------------
 
-export function startMessage() {
+export function startMessage(firstName) {
+  const hi = firstName ? `سلام ${esc(firstName)}! 👋` : 'سلام! 👋';
   return [
-    '🎓 WEEKLY//UNI',
+    '🎓 <b>WEEKLY//UNI</b> ✨',
     '',
-    'ربات شخصی برنامه‌های دانشگاهت آماده‌ست.',
+    `${hi}`,
+    'ربات شخصی برنامه‌های دانشگاهت آماده‌ست 🎒📚',
     '',
-    'دستورها:',
-    '📅 /days — روزهای کلاس در قالب «تاریخ - نام روز»',
+    DIV,
+    '🗂 <b>دستورها:</b>',
+    '📅 /days — روزهای کلاس به شکل «تاریخ - نام روز»',
     '📆 /today — کلاس‌های امروز',
     '➡️ /tomorrow — کلاس‌های فردا',
     '📝 /exams — امتحان‌ها و ارائه‌های پیش‌رو',
-    'ℹ️ /help — راهنما',
+    'ℹ️ /help — راهنمای کامل',
+    DIV,
     '',
     'برای برنامهٔ کامل با گرید هفتگی، یادداشت‌ها و امتحان‌ها، مینی‌اپ رو باز کن 👇',
   ].join('\n');
@@ -153,20 +208,21 @@ export function startMessage() {
 
 export function helpMessage() {
   return [
-    'ℹ️ راهنمای WEEKLY//UNI',
+    'ℹ️ <b>راهنمای WEEKLY//UNI</b>',
     '',
-    '📅 /days — فهرست روزهایی که کلاس داری، هر خط به شکل «تاریخ - نام روز»',
-    '📆 /today — کلاس‌های امروز',
-    '➡️ /tomorrow — کلاس‌های فردا',
-    '📝 /exams — امتحان‌ها و ارائه‌ها با شمارش معکوس',
-    '🎓 دکمهٔ «برنامه هفتگی» — باز کردن مینی‌اپ کامل',
+    '📅 <b>/days</b> — فهرست روزهایی که کلاس داری؛ هر خط دقیقاً «تاریخ - نام روز»',
+    '      با دکمه‌های ⬅️ ➡️ تا ۱۶ هفتهٔ بعدی رو هم ببین',
+    '📆 <b>/today</b> — کلاس‌های امروز با ساعت، استاد و محل',
+    '➡️ <b>/tomorrow</b> — کلاس‌های فردا',
+    '📝 <b>/exams</b> — امتحان‌ها و ارائه‌ها با شمارش معکوس ⏳',
+    '🎓 دکمهٔ «برنامهٔ هفتگی» — باز کردن مینی‌اپ کامل',
     '',
-    'روی دکمه‌های زیر پیام‌ها بزن تا ۴ هفتهٔ بعدی رو هم ببینی.',
+    '💡 هر وقت تو مینی‌اپ کلاس یا امتحانی اضافه یا حذف کنی، جواب‌های همین ربات هم خودکار آپدیت می‌شه 🔄',
   ].join('\n');
 }
 
 export function notOwnerMessage() {
-  return 'این ربات شخصی است و فقط برای مالکش کار می‌کند 🤖';
+  return '🔒 این ربات شخصیه و فقط برای مالکش جواب می‌ده 🤖';
 }
 
 /** Inline keyboard for the days list: earlier weeks / next weeks */
@@ -174,5 +230,5 @@ export function daysKeyboard(weeksAhead) {
   const row = [];
   if (weeksAhead > 0) row.push({ text: '⬅️ ۴ هفتهٔ قبل', callback_data: `days:${weeksAhead - 1}` });
   if (weeksAhead < 16) row.push({ text: '۴ هفتهٔ بعد ➡️', callback_data: `days:${weeksAhead + 1}` });
-  return { inline_keyboard: [row.concat([{ text: '🎓 مینی‌اپ', url: 'https://app9229459492.tgcloud.ai/' }])] };
+  return { inline_keyboard: [row.concat([{ text: '🎓 مینی‌اپ', url: APP_URL_TEXT }])] };
 }
