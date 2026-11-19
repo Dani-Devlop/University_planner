@@ -86,11 +86,32 @@ export const SEED_CLASSES = [
   },
 ];
 
-/** Insert the seed classes once (idempotent, safe to call on every invocation). */
+/** Seed exam — snapshot of data/db.json (seeded only on first-ever init) */
+export const SEED_EXAMS = [
+  {
+    id: 'emvj7qu8427s',
+    classId: '1',
+    title: 'پرسیدن راجب حذف شدن بعدش معرفی گرفتن تو یک ترم که هستم',
+    date: '2026-11-03',
+    time: '08:00',
+    kind: 'exam',
+    location: '',
+    color: '#00ff41',
+    notes: 'تستی تا صفحه',
+  },
+];
+
+/** Insert the seed classes once (idempotent, safe to call on every invocation).
+ *  Returns true when the database was freshly initialized; the seed exam is
+ *  only inserted on that first init so user deletions are never undone. */
 export async function ensureSeed() {
   const count = await db.$count(classesT);
-  if (count > 0) return;
+  if (count > 0) return false;
   await db.insert(classesT).values(SEED_CLASSES).onConflictDoNothing().run();
+  if ((await db.$count(examsT)) === 0) {
+    await db.insert(examsT).values(SEED_EXAMS).onConflictDoNothing().run();
+  }
+  return true;
 }
 
 /** All classes, ordered: scheduled days first (شنبه→پنجشنبه order), then by start time, Unscheduled last. */
