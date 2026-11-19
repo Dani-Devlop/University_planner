@@ -7,9 +7,47 @@ import seedData from "../../data/db.json";
  * GitHub Pages static mode (NEXT_PUBLIC_STATIC=1):
  * no server/API available — the same UI persists everything in localStorage,
  * seeded on first visit from the bundled data/db.json snapshot.
+ *
+ * Telegram Serverless mode (auto-detected at runtime):
+ * when the app runs inside Telegram as a Mini App, every read/write goes to
+ * tgcloud endpoints (tgcloud/endpoints/*) via Telegram.WebApp.Serverless.call —
+ * the same UI, persisted in the bot's cloud database.
  */
 const STATIC = process.env.NEXT_PUBLIC_STATIC === "1";
 const LS_KEY = "wu.static.db.v1";
+
+interface ServerlessBridge {
+  call: (name: string, input: object, cb: (err: unknown, res: unknown) => void) => void;
+}
+
+function serverless(): ServerlessBridge | null {
+  if (typeof window === "undefined") return null;
+  const bridge = (
+    window as unknown as {
+      Telegram?: { WebApp?: { Serverless?: ServerlessBridge } };
+    }
+  ).Telegram?.WebApp?.Serverless;
+  return bridge && typeof bridge.call === "function" ? bridge : null;
+}
+
+/** Call a tgcloud endpoint; resolves with its result, rejects on error. */
+function callEndpoint<T>(name: string, input?: Record<string, unknown>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const bridge = serverless();
+    if (!bridge) {
+      reject(new Error("no-serverless"));
+      return;
+    }
+    try {
+      bridge.call(name, input ?? {}, (err, res) => {
+        if (err) reject(err instanceof Error ? err : new Error(String((err as { message?: string })?.message ?? "endpoint-error")));
+        else resolve(res as T);
+      });
+    } catch (e) {
+      reject(e instanceof Error ? e : new Error(String(e)));
+    }
+  });
+}
 
 interface Snapshot {
   classes: UniClass[];
@@ -79,6 +117,21 @@ export const useUni = create<UniState>((set, get) => ({
   systemOpen: false,
 
   load: async () => {
+    if (serverless()) {
+      set({ syncing: true });
+      try {
+        const data = await callEndpoint<{ classes: UniClass[]; exams: UniExam[]; notes: NotesMap }>("getSchedule");
+        set({ loaded: true, classes: data.classes ?? [], exams: data.exams ?? [], notes: data.notes ?? {} });
+        return;
+      } catch {
+        // endpoint unreachable — fall through to the bundled seed so the UI still works
+        const snap = lsRead() ?? SEED;
+        set({ loaded: true, classes: snap.classes, exams: snap.exams, notes: snap.notes });
+        return;
+      } finally {
+        set({ syncing: false });
+      }
+    }
     if (STATIC) {
       const snap = lsRead();
       const data = snap ?? SEED;
@@ -104,6 +157,12 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateClass: async (id, patch) => {
     set({ classes: get().classes.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
+    if (serverless()) {
+      try {
+        await callEndpoint("updateClass", { id, patch });
+      } catch { /* offline — optimistic state kept */ }
+      return;
+    }
     if (STATIC) {
       lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
       return;
@@ -118,6 +177,20 @@ export const useUni = create<UniState>((set, get) => ({
   },
 
   addExam: async (ex) => {
+    if (serverless()) {
+      try {
+        const saved = await callEndpoint<UniExam>("addExam", { ...ex });
+        set({ exams: [...get().exams, saved] });
+      } catch {
+        // keep optimistic local copy so the UI still reflects the attempt
+        const saved: UniExam = {
+          ...ex,
+          id: `ex${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+        };
+        set({ exams: [...get().exams, saved] });
+      }
+      return;
+    }
     if (STATIC) {
       const saved: UniExam = {
         ...ex,
@@ -142,6 +215,12 @@ export const useUni = create<UniState>((set, get) => ({
 
   updateExam: async (id, patch) => {
     set({ exams: get().exams.map((e) => (e.id === id ? { ...e, ...patch } : e)) });
+    if (serverless()) {
+      try {
+        await callEndpoint("updateExam", { id, patch });
+      } catch { /* offline — optimistic state kept */ }
+      return;
+    }
     if (STATIC) {
       lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
       return;
@@ -157,6 +236,12 @@ export const useUni = create<UniState>((set, get) => ({
 
   deleteExam: async (id) => {
     set({ exams: get().exams.filter((e) => e.id !== id) });
+    if (serverless()) {
+      try {
+        await callEndpoint("deleteExam", { id });
+      } catch { /* offline — optimistic state kept */ }
+      return;
+    }
     if (STATIC) {
       lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
       return;
@@ -168,6 +253,12 @@ export const useUni = create<UniState>((set, get) => ({
 
   setNote: async (classId, text) => {
     set({ notes: { ...get().notes, [classId]: text } });
+    if (serverless()) {
+      try {
+        await callEndpoint("setNote", { classId, text });
+      } catch { /* offline — optimistic state kept */ }
+      return;
+    }
     if (STATIC) {
       lsWrite({ classes: get().classes, exams: get().exams, notes: get().notes });
       return;

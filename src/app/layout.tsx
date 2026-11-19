@@ -19,8 +19,13 @@ const vazirmatn = Vazirmatn({
   subsets: ["arabic"],
 });
 
-/** GitHub Pages project site serves under /<repo>/ — prefix public asset URLs there */
-const BP = process.env.NEXT_PUBLIC_STATIC === "1" ? "/University_planner" : "";
+/** Static-host asset prefix: GitHub Pages project site serves under /<repo>/, tgcloud at root */
+const BP =
+  process.env.NEXT_PUBLIC_TGCLOUD === "1"
+    ? ""
+    : process.env.NEXT_PUBLIC_STATIC === "1"
+      ? "/University_planner"
+      : "";
 
 export const metadata: Metadata = {
   title: "WEEKLY//UNI — Terminal Schedule",
@@ -60,6 +65,18 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} ${vazirmatn.variable} antialiased bg-background text-foreground font-sans`}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+          {/* Telegram Mini Apps SDK — loads everywhere, only active inside Telegram.
+              When Serverless is present the app persists via tgcloud endpoints. */}
+          <script src="https://telegram.org/js/telegram-web-app.js" async={false} />
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                "if(window.Telegram&&window.Telegram.WebApp){try{window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();" +
+                "window.Telegram.WebApp.setHeaderColor&&window.Telegram.WebApp.setHeaderColor('#06080a');" +
+                "window.Telegram.WebApp.setBackgroundColor&&window.Telegram.WebApp.setBackgroundColor('#06080a');" +
+                "}catch(e){}}",
+            }}
+          />
           {children}
           <Toaster />
         </ThemeProvider>

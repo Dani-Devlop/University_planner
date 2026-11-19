@@ -55,3 +55,8 @@ server.log
 # github pages static export (local test)
 /out
 /.next-static
+
+# telegram serverless (tgcloud)
+/.api-keep-tgcloud/
+/.next-tgcloud/
+/.tgcloud/

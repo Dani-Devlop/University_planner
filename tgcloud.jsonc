@@ -1,0 +1,12 @@
+{
+  // Telegram Serverless project config — WEEKLY//UNI mini app
+  // The Next.js static export (npm run build:tgcloud) lands in out/ and is
+  // deployed together with tgcloud/ modules by `npx tgcloud push`.
+  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json",
+  "static": {
+    "source": "out",
+    "spa": true,
+    "immutable": ["/_next/static/*"],
+    "headers": [{ "path": "/*", "set": { "Referrer-Policy": "no-referrer" } }]
+  }
+}
